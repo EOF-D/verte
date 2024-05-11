@@ -42,6 +42,8 @@
                 gnumake
                 gtest
                 llvmPackages_17.libllvm
+                valgrind
+                gdb
               ];
 
               pre-commit.hooks = {

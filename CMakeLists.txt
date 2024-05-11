@@ -22,6 +22,17 @@ file(GLOB_RECURSE HEADERS
 
 add_library(ExcerptLib ${SOURCES} ${HEADERS})
 
+# Find LLVM and link
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+include_directories(${LLVM_INCLUDE_DIRS})
+separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+add_definitions(${LLVM_DEFINITIONS_LIST})
+
+target_link_libraries(ExcerptLib LLVM)
+
 # Option to enable/disable unit testing
 option(BUILD_TESTS "Build unit tests" OFF)
 

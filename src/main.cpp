@@ -1,14 +1,15 @@
+#include "argparser.hpp"
 #include "logger.hpp"
 
-int main() {
-  excerpt::utils::Logger logger("main-demo");
+int main(int argc, char *argv[]) {
+  excerpt::utils::Logger logger("main");
+  excerpt::utils::ArgParser parser(argc, argv);
 
-  logger.info("some info message.");
-  logger.warn("some warning message.");
-  logger.error("some error message.");
-
-  logger.info("some info message with arguments: {}", 42);
-  logger.warn("Hello {}", "world!");
+  if (!parser.getInput().empty()) {
+    for (const auto &line : parser.readInput()) {
+      llvm::outs() << line << "\n";
+    }
+  }
 
   return 0;
 }
