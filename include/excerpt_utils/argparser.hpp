@@ -33,6 +33,12 @@ namespace excerpt::utils {
       llvm::cl::ParseCommandLineOptions(argc, argv, "Excerpt\n");
     }
 
+    ~ArgParser() {
+      llvm::cl::ResetAllOptionOccurrences();
+      _input.reset();
+      _output.reset();
+    }
+
     /**
      * @brief Get the input filename.
      */
