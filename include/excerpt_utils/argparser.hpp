@@ -8,7 +8,7 @@
 
 #ifndef EXCERPT_VERSION
 #define EXCERPT_VERSION "v0.1.0"
-#endif
+#endif // EXCERPT_VERSION
 
 #include "logger.hpp"
 
