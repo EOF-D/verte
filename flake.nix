@@ -57,7 +57,7 @@
               scripts.excerpt-tests.exec = ''
                 cmake -S . -B build -DBUILD_TESTS=true
                 cmake --build build
-                ./build/tests/excerpt-tests --gtest_brief=1
+                ./build/tests/excerpt-tests
               '';
             }
           ];
