@@ -33,6 +33,7 @@
 
 namespace excerpt::utils {
   using LogData = std::pair<std::string_view, std::string_view>;
+
   /**
    * @brief Concept to check if a type supports the `<<` operator.
    * @tparam T The type to check.
