@@ -58,7 +58,8 @@ namespace excerpt::utils {
      * \note
      *  This constructor uses the default output stream `std::cout`.
      */
-    explicit Logger(const std::string &name) : name(name), output(std::cout) {}
+    explicit Logger(const std::string &name) noexcept
+        : name(name), output(std::cout) {}
 
     /**
      * @brief Construct a new Logger object.
@@ -71,7 +72,7 @@ namespace excerpt::utils {
      *  supports the `<<` operator.
      */
     template <OutputStream Stream>
-    explicit Logger(const std::string &name, Stream &stream)
+    explicit Logger(const std::string &name, Stream &stream) noexcept
         : name(name), output(stream) {}
 
     /**

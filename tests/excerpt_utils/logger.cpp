@@ -3,7 +3,7 @@
  * @brief Unit tests for the Logger class.
  */
 
-#include "logger.hpp"
+#include "excerpt_utils/logger.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

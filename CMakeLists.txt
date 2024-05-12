@@ -10,8 +10,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the include directory
-include_directories(include/excerpt)
-include_directories(include/excerpt_utils)
+include_directories(include)
 
 file(GLOB_RECURSE SOURCES src/*.cpp)
 file(GLOB_RECURSE HEADERS 

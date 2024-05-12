@@ -27,7 +27,7 @@ namespace excerpt::utils {
      * @param argc Number of arguments
      * @param argv Argument list
      */
-    ArgParser(int argc, char **argv) {
+    explicit ArgParser(int argc, char **argv) {
       llvm::cl::HideUnrelatedOptions(category);
       llvm::cl::SetVersionPrinter(printVersion);
       llvm::cl::ParseCommandLineOptions(argc, argv, "Excerpt\n");
@@ -42,12 +42,12 @@ namespace excerpt::utils {
     /**
      * @brief Get the input filename.
      */
-    std::string getInput() const { return _input; }
+    std::string getInput() const noexcept { return _input; }
 
     /**
      * @brief Get the output filename.
      */
-    const std::string getOutput() const { return _output; }
+    const std::string getOutput() const noexcept { return _output; }
 
     /**
      * @brief Get version information.

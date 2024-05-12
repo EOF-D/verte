@@ -1,15 +1,9 @@
-#include "argparser.hpp"
-#include "logger.hpp"
+#include "excerpt/lexer/token.hpp"
+#include <iostream>
 
-int main(int argc, char *argv[]) {
-  excerpt::utils::Logger logger("main");
-  excerpt::utils::ArgParser parser(argc, argv);
+using namespace excerpt;
 
-  if (!parser.getInput().empty()) {
-    for (const auto &line : parser.readInput()) {
-      llvm::outs() << line << "\n";
-    }
-  }
-
+int main() {
+  llvm::StringRef source = "std::cout << \"Hello, world!\" << std::endl;";
   return 0;
 }
