@@ -47,3 +47,4 @@ _deps
 .cache
 build
 .devenv
+.pre-commit-config.yaml
