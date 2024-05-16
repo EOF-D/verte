@@ -60,9 +60,7 @@ namespace excerpt::utils {
      * @brief Read the input file.
      * @return The content of the input file.
      */
-    llvm::SmallVector<llvm::StringRef> readInput() {
-      llvm::SmallVector<llvm::StringRef> lines;
-
+    llvm::StringRef readInput() {
       // Open the input file.
       std::unique_ptr<llvm::MemoryBuffer> buffer;
       auto bufferOrError = llvm::MemoryBuffer::getFile(getInput());
@@ -72,15 +70,12 @@ namespace excerpt::utils {
         logger.error("Failed to read input file");
         llvm::errs() << bufferOrError.getError().message() << "\n";
 
-        return lines;
+        return {};
       }
 
       // Read the content of the input file by lines.
       buffer = std::move(bufferOrError.get());
-      llvm::StringRef content = buffer->getBuffer();
-      content.split(lines, '\n');
-
-      return lines;
+      return buffer->getBuffer();
     }
 
   private:

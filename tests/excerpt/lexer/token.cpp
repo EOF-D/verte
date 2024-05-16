@@ -11,17 +11,14 @@ using namespace excerpt;
 TEST(TokenTest, TestTokenToString) {
   // clang-format off
   Token::Meta meta = {0, 0};
-  #define add(name, value) \
-    {                                                     \
-      Token token(value, Token::Type::name, meta);        \
-      if (Token::Type::name == Token::Type::END) {        \
-        ASSERT_EQ(token.toString(), "END()");             \
-      } else {                                            \
-        ASSERT_EQ(token.toString(), #name "(" value ")"); \
-      }                                                   \
+  #define _(name, value) \
+    { \
+      Token token(value, Token::Type::name, meta); \
+      std::string expected = std::format("({}, {}) {}:{}", value, #name, meta.line, meta.column); \
+      EXPECT_EQ(token.toString(), expected); \
     }
     TOKENS
-  #undef add
+  #undef _
   // clang-format on
 }
 
@@ -29,13 +26,13 @@ TEST(TokenTest, TestTokenIs) {
   // clang-format off
   Token::Meta meta = {0, 0};
 
-  #define add(name, value)                         \
+  #define _(name, value)                           \
     {                                              \
       Token token(value, Token::Type::name, meta); \
       ASSERT_TRUE(token.is(Token::Type::name));    \
     }
     TOKENS
-  #undef add
+  #undef _
   // clang-format on
 }
 

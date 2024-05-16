@@ -6,64 +6,28 @@
 #ifndef EXCERPT_TOKEN_HPP
 #define EXCERPT_TOKEN_HPP
 
-#include "llvm/ADT/StringRef.h"
+#include <cstdint>
+#include <format>
+#include <string>
+
+#include "defs.h"
 
 // clang-format off
 namespace excerpt {
-  #define TOKENS                  \
-    add(LPAREN, "(")              \
-    add(RPAREN, ")")              \
-    add(LBRACE, "{")              \
-    add(RBRACE, "}")              \
-    add(COMMA, ",")               \
-    add(DOT, ".")                 \
-    add(MINUS, "-")               \
-    add(PLUS, "+")                \
-    add(SEMICOLON, ";")           \
-    add(SLASH, "/")               \
-    add(STAR, "*")                \
-    add(BANG, "!")                \
-    add(BANG_EQUAL, "!=")         \
-    add(EQUAL, "=")               \
-    add(EQUAL_EQUAL, "==")        \
-    add(GREATER, ">")             \
-    add(GREATER_EQUAL, ">=")      \
-    add(LESS, "<")                \
-    add(LESS_EQUAL, "<=")         \
-    add(IDENTIFIER, "IDENTIFIER") \
-    add(STRING, "STRING")         \
-    add(NUMBER, "NUMBER")         \
-    add(IF, "if")                 \
-    add(ELSE, "else")             \
-    add(OR, "or")                 \
-    add(TRUE, "true")             \
-    add(FALSE, "false")           \
-    add(FOR, "for")               \
-    add(WHILE, "while")           \
-    add(SUPER, "super")           \
-    add(THIS, "this")             \
-    add(NONE, "none")             \
-    add(FN, "fn")                 \
-    add(END, "\0")                \
-    add(INVALID, "INVALID")
-  // clang-format on
-
-  using Iterator = llvm::StringRef::iterator;
-
   /**
    * @brief Command line argument parser
    */
   struct Token {
-    llvm::StringRef value; /**< The token value. */
+    std::string value; /**< The token value. */
 
     /**
      * @brief Token types.
      */
     // clang-format off
     enum class Type : uint8_t {
-      #define add(name, _) name,
+      #define _(name, _) name,
         TOKENS
-      #undef add
+      #undef _
       // clang-format on
     } type{Type::INVALID};
 
@@ -81,31 +45,20 @@ namespace excerpt {
      * @param line The line number.
      * @param column The column number.
      */
-    explicit Token(llvm::StringRef value, Type type, Meta meta) noexcept
-        : value(value), type(type), meta(meta) {}
+    explicit Token(std::string value, Type type, Meta meta) noexcept;
 
     /**
      * @brief Token to string
      * @return Token string representation
      */
-    std::string toString() const {
-      // clang-format off
-      static const std::string TOKENS_STR[] = {
-        #define add(name, value) #name,
-          TOKENS
-        #undef add
-      };
-
-      // clang-format on
-      return TOKENS_STR[static_cast<uint8_t>(type)] + "(" + value.str() + ")";
-    }
+    std::string toString() const;
 
     /**
      * @brief Check if the token is of a specific type.
      * @param type The token type.
      * @return true if the token is of the specified type, false otherwise.
      */
-    bool is(Type type) const noexcept { return this->type == type; }
+    bool is(Type type) const noexcept;
 
     /**
      * @brief Check if the token is one of the specified types.
@@ -113,33 +66,21 @@ namespace excerpt {
      * @return true if the token is one of the specified types, false
      * otherwise.
      */
-    bool isOneOf(std::initializer_list<Type> types) const noexcept {
-      for (auto type : types) {
-        if (is(type)) {
-          return true;
-        }
-      }
-
-      return false;
-    }
+    bool isOneOf(std::initializer_list<Type> types) const noexcept;
 
     /**
      * @brief Overload the == operator for Token objects
      * @param other The other Token object
      * @return true if the tokens are equal, false otherwise
      */
-    bool operator==(const Token &other) const noexcept {
-      return type == other.type && value == other.value;
-    }
+    bool operator==(const Token &other) const noexcept;
 
     /**
      * @brief Overload the != operator for Token objects
      * @param other The other Token object
      * @return true if the tokens are not equal, false otherwise
      */
-    bool operator!=(const Token &other) const noexcept {
-      return !(*this == other);
-    }
+    bool operator!=(const Token &other) const noexcept;
   };
 
   /**
@@ -157,6 +98,7 @@ namespace excerpt {
       Token::Type::NONE, Token::Type::FN
     });
   }
+
 }; // namespace excerpt
 
 #endif // EXCERPT_TOKEN_HPP
