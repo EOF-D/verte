@@ -107,3 +107,25 @@ TEST(LexerTest, TestSkip) {
   ASSERT_TRUE(lexer.next().is(Token::Type::IDENTIFIER));
   ASSERT_TRUE(lexer.next().is(Token::Type::END));
 }
+
+TEST(LexerTest, TestEscapeSequences) {
+  Lexer lexer("\"\\n\\r\\t\\\\\\\"\"");
+  Token token = lexer.next();
+  EXPECT_EQ(token.value, "\n\r\t\\\"");
+}
+
+TEST(LexerTest, TestMultipleEscapeSequences) {
+  Lexer lexer("\"\\n\\r\\t\\\\\\\"\\n\\r\\t\\\\\\\"\"");
+  Token token = lexer.next();
+  EXPECT_EQ(token.value, "\n\r\t\\\"\n\r\t\\\"");
+}
+
+TEST(LexerTest, TestInvalidEscapeSequence) {
+  Lexer lexer("\"\\x\"");
+  EXPECT_THROW((void)lexer.next(), LexerError);
+}
+
+TEST(LexerTest, TestUnterminatedString) {
+  Lexer lexer("\"Hello");
+  EXPECT_THROW((void)lexer.next(), LexerError);
+}

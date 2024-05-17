@@ -100,21 +100,32 @@ namespace excerpt {
 
   [[nodiscard]] Token Lexer::parseString() {
     std::string value;
-
-    // Skip the opening quote.
     char quote = advance();
-    while (current() != quote) {
-      if (current() == '\0') {
-        error("Unterminated string");
-      }
 
-      // TODO: Handle escape sequences.
-      value += advance();
+    while ((current() != quote) && !eof()) {
+      // Handle escape sequences.
+      if (current() == '\\') {
+        advance(); // Skip the backslash
+
+        // clang-format off
+        switch (advance()) { // Handle the escaped character
+          case 'n': value += '\n'; break;
+          case 'r': value += '\r'; break;
+          case 't': value += '\t'; break;
+          case '\\': value += '\\'; break;
+          case '"': value += '"'; break;
+          default: error("Invalid escape sequence");
+        }
+        // clang-format on
+      } else {
+        value += advance();
+      }
     }
 
-    // Skip the closing quote.
-    advance();
+    if (eof())
+      error("Unterminated string");
 
+    advance(); // Skip the closing quote
     return Token(value, Token::Type::STRING, {line, column});
   }
 
