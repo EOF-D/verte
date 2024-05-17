@@ -6,6 +6,7 @@
 #ifndef EXCERPT_LEXER_HPP
 #define EXCERPT_LEXER_HPP
 
+#include "../errors.hpp"
 #include "excerpt/lexer/token.hpp"
 #include "excerpt_utils/logger.hpp"
 
@@ -102,8 +103,7 @@ namespace excerpt {
       std::string error = std::format("{}:{}: {}", line, column, message);
       logger.error(error);
 
-      // TODO: Make own errors.
-      throw std::runtime_error(error);
+      throw LexerError(error, line, column);
     }
 
     const std::string_view source; /**< The source code to tokenize. */
