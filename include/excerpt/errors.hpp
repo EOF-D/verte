@@ -40,6 +40,19 @@ namespace excerpt {
     size_t line;         /**< The line number. */
     size_t column;       /**< The column number. */
   };
+
+  /**
+   * @brief An exception thrown by the parser.
+   */
+  class ParserError : public LexerError {
+  public:
+    /**
+     * @brief Constructs a new ParserError.
+     * @param message The error message.
+     */
+    explicit ParserError(const std::string &message, size_t line, size_t column)
+        : LexerError(message, line, column) {}
+  };
 } // namespace excerpt
 
 #endif // EXCERPT_ERRORS_HPP

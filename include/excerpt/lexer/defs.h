@@ -16,13 +16,14 @@ namespace excerpt {
   _(RBRACKET, "]")                                                             \
   _(COMMA, ",")                                                                \
   _(DOT, ".")                                                                  \
-  _(MINUS, "-")                                                                \
-  _(PLUS, "+")                                                                 \
+  _(COLON, ":")                                                                \
   _(SEMICOLON, ";")
 
 #define OPERATORS                                                              \
   _(EQUAL, "=")                                                                \
   _(BANG, "!")                                                                 \
+  _(MINUS, "-")                                                                \
+  _(PLUS, "+")                                                                 \
   _(STAR, "*")                                                                 \
   _(SLASH, "/")                                                                \
   _(LESS, "<")                                                                 \

@@ -1,28 +1,41 @@
 #include "excerpt/lexer/lexer.hpp"
-#include "excerpt_utils/logger.hpp"
-
+#include "excerpt/parser/parser.hpp"
 #include <iostream>
 
 using namespace excerpt;
 
-int main(int argc, char *argv[]) {
+int main() {
   utils::Logger logger("main");
+
   std::string input;
+  std::string source;
 
   do {
     std::cout << "> ";
     std::getline(std::cin, input);
 
-    Lexer lexer(input);
-    Token token = lexer.next();
+    if (input == "debug()")
+      break;
 
-    while (!token.is(Token::Type::END)) {
-      logger.info("Token: {}", token.toString());
-      token = lexer.next();
-    }
+    source += input + "\n";
+  } while (input != "debug()");
 
-    std::cout << "\n";
-  } while (input != "exit");
+  Lexer lexer(source);
+  auto tokens = lexer.all();
+
+  Parser parser(tokens);
+  std::unique_ptr<ProgramAST> ast;
+
+  try {
+    ast = parser.parse();
+  } catch (const ParserError &e) {
+    return -1;
+  }
+
+  // Print the AST
+  for (const auto &expr : ast->body) {
+    logger.info("{}", expr->str());
+  }
 
   return 0;
 }

@@ -1,4 +1,5 @@
 ---
 BasedOnStyle: LLVM
 NamespaceIndentation: All
+IndentCaseLabels: true
 ...

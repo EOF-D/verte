@@ -33,6 +33,25 @@ namespace excerpt {
     [[nodiscard]] Token next();
 
     /**
+     * @brief Get all tokens from the source.
+     * @return The tokens.
+     */
+    [[nodiscard]] std::vector<Token> all() {
+      std::vector<Token> tokens;
+
+      auto token = next();
+      while (!token.is(Token::Type::END)) {
+        tokens.push_back(token);
+        token = next();
+      }
+
+      tokens.push_back(
+          Token("END", Token::Type::END, {line, column})); // Padding for EOF.
+
+      return tokens;
+    }
+
+    /**
      * @brief Check if at EOF.
      * @return True if at the end of source, otherwise false.
      */
@@ -115,26 +134,20 @@ namespace excerpt {
     utils::Logger logger; /**< The logger for the lexer. */
   };
 
+  // clang-format off
   static const std::map<std::string, Token::Type> RESERVED = {
-      {"if", Token::Type::IF},       {"else", Token::Type::ELSE},
-      {"or", Token::Type::OR},       {"true", Token::Type::TRUE},
-      {"false", Token::Type::FALSE}, {"for", Token::Type::FOR},
-      {"while", Token::Type::WHILE}, {"super", Token::Type::SUPER},
-      {"this", Token::Type::THIS},   {"none", Token::Type::NONE},
-      {"fn", Token::Type::FN}};
+    #define _(name, value) {value, Token::Type::name},
+      TOKENS
+    #undef _
+  };
 
   static const std::map<std::string, Token::Type> ATOMIC = {
-      {"(", Token::Type::LPAREN},        {")", Token::Type::RPAREN},
-      {"{", Token::Type::LBRACE},        {"}", Token::Type::RBRACE},
-      {"[", Token::Type::LBRACKET},      {"]", Token::Type::RBRACKET},
-      {",", Token::Type::COMMA},         {".", Token::Type::DOT},
-      {";", Token::Type::SEMICOLON},     {"/", Token::Type::SLASH},
-      {"*", Token::Type::STAR},          {"-", Token::Type::MINUS},
-      {"+", Token::Type::PLUS},          {"!", Token::Type::BANG},
-      {"=", Token::Type::EQUAL},         {"<", Token::Type::LESS},
-      {">", Token::Type::GREATER},       {"==", Token::Type::EQUAL_EQUAL},
-      {"!=", Token::Type::BANG_EQUAL},   {"<=", Token::Type::LESS_EQUAL},
-      {">=", Token::Type::GREATER_EQUAL}};
+    #define _(name, value) {value, Token::Type::name},
+      SYMBOLS
+      OPERATORS
+    #undef _
+  };
+  // clang-format on
 } // namespace excerpt
 
 #endif // EXCERPT_LEXER_HPP
