@@ -91,11 +91,11 @@ namespace excerpt {
   inline bool isKeyword(const Token &token) noexcept {
     // clang-format off
     return token.isOneOf({
-      Token::Type::IF, Token::Type::ELSE, Token::Type::OR,
+      Token::Type::IF, Token::Type::ELSE, Token::Type::OR, Token::Type::AND,
       Token::Type::TRUE, Token::Type::FALSE,
       Token::Type::FOR, Token::Type::WHILE,
       Token::Type::SUPER, Token::Type::THIS,
-      Token::Type::NONE, Token::Type::FN
+      Token::Type::NONE, Token::Type::FN, Token::Type::RETURN
     });
   }
 

@@ -16,7 +16,10 @@ using namespace ::testing;
 
 class LoggerTest : public ::testing::Test {
 protected:
-  void SetUp() override { logger = std::make_unique<Logger>("tests", output); }
+  void SetUp() override {
+    Logging::setLevel(LogLevel::ERROR);
+    logger = std::make_unique<Logger>("tests", output);
+  }
 
   void TearDown() override {
     logger.reset(); // Reset with smart pointer.
@@ -92,4 +95,49 @@ TEST_F(LoggerTest, TestVariadicArgs) {
               EndsWith("\x1B[0;32m[tests:INFO]: \x1B[0m foo, bar, baz"));
 
   output.clear(); // Clear the output stream.
+}
+
+TEST_F(LoggerTest, TestGlobalLogLevelInfo) {
+  Logging::setLevel(LogLevel::INFO);
+
+  logger->info("info");
+  logger->warn("warn");
+  logger->error("error");
+
+  const auto logs = extract();
+  ASSERT_EQ(logs.size(), 1);
+  ASSERT_THAT(logs.at(0), EndsWith("\x1B[0;32m[tests:INFO]: \x1B[0m info"));
+
+  output.clear();
+}
+
+TEST_F(LoggerTest, TestGlobalLogLevelWarning) {
+  Logging::setLevel(LogLevel::WARNING);
+
+  logger->info("info");
+  logger->warn("warn");
+  logger->error("error");
+
+  const auto logs = extract();
+  ASSERT_EQ(logs.size(), 2);
+  ASSERT_THAT(logs.at(0), EndsWith("\x1B[0;32m[tests:INFO]: \x1B[0m info"));
+  ASSERT_THAT(logs.at(1), EndsWith("\x1B[0;33m[tests:WARNING]: \x1B[0m warn"));
+
+  output.clear();
+}
+
+TEST_F(LoggerTest, TestGlobalLogLevelError) {
+  Logging::setLevel(LogLevel::ERROR);
+
+  logger->info("info");
+  logger->warn("warn");
+  logger->error("error");
+
+  const auto logs = extract();
+  ASSERT_EQ(logs.size(), 3);
+  ASSERT_THAT(logs.at(0), EndsWith("\x1B[0;32m[tests:INFO]: \x1B[0m info"));
+  ASSERT_THAT(logs.at(1), EndsWith("\x1B[0;33m[tests:WARNING]: \x1B[0m warn"));
+  ASSERT_THAT(logs.at(2), EndsWith("\x1B[0;31m[tests:ERROR]: \x1B[0m error"));
+
+  output.clear();
 }

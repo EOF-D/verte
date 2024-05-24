@@ -43,8 +43,35 @@ namespace excerpt::utils {
       requires(T &stream, typename T::char_type c) { stream << c; };
 
   /**
+   * @brief The log levels
+   */
+  enum class LogLevel : uint8_t {
+    NONE,    /**< No logging. */
+    INFO,    /**< Informational message. */
+    WARNING, /**< Warning message. */
+    ERROR,   /**< Error message. */
+  };
+
+  namespace Logging {
+    inline LogLevel globalLevel = LogLevel::NONE; /**< The global level. */
+
+    /**
+     * @brief Sets the global log level.
+     * @param level The LogLevel to set as global.
+     */
+    inline void setLevel(LogLevel level) { globalLevel = level; }
+
+    /**
+     * @brief Get the global log level.
+     * @return The global log level.
+     */
+    inline LogLevel getLevel() { return globalLevel; }
+  } // namespace Logging
+
+  /**
    * @brief Logger class for logging messages with different levels.
    * - Log Levels
+   *  -# NONE
    *  -# INFO
    *  -# WARNING
    *  -# ERROR
@@ -110,15 +137,6 @@ namespace excerpt::utils {
 
   private:
     /**
-     * @brief The log levels
-     */
-    enum class LogLevel : uint8_t {
-      INFO,    /**< Informational message. */
-      WARNING, /**< Warning message. */
-      ERROR,   /**< Error message. */
-    };
-
-    /**
      * @brief Log a message with a specified level.
      * @tparam Args The types of the variadic arguments.
      * @param level The log level.
@@ -127,6 +145,10 @@ namespace excerpt::utils {
      */
     template <typename... Args>
     void log(LogLevel level, const std::string &message, Args &&...args) {
+      // Check if the log level is less than the global level.
+      if (Logging::getLevel() < level)
+        return;
+
       // Get the current timestamp & format.
       const auto time = std::chrono::current_zone()->to_local(
           std::chrono::system_clock::now());
@@ -148,6 +170,7 @@ namespace excerpt::utils {
     }
 
     static constexpr std::array<LogData, 4> LEVEL_DATA = {{
+        {"\033[0m", "NONE"},
         {"\033[0;32m", "INFO"},
         {"\033[0;33m", "WARNING"},
         {"\033[0;31m", "ERROR"},

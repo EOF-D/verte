@@ -1,3 +1,8 @@
+/**
+ * @file errors.hpp
+ * @brief Exceptions thrown by the library.
+ */
+
 #ifndef EXCERPT_ERRORS_HPP
 #define EXCERPT_ERRORS_HPP
 
@@ -6,22 +11,36 @@
 
 namespace excerpt {
   /**
+   * @brief Internal error.
+   */
+  class InternalError : public std::exception {
+  public:
+    /**
+     * @brief Constructs a new InternalError.
+     * @param message The error message.
+     */
+    explicit InternalError(const std::string &message) : message(message) {}
+    /**
+     * @brief Returns the error message.
+     * @return The error message.
+     */
+    const char *what() const noexcept override { return message.c_str(); }
+
+  private:
+    std::string message; /**< The error message. */
+  };
+
+  /**
    * @breif An exception thrown by the lexer.
    */
-  class LexerError : public std::exception {
+  class LexerError : public InternalError {
   public:
     /**
      * @brief Constructs a new LexerError.
      * @param message The error message.
      */
     explicit LexerError(const std::string &message, size_t line, size_t column)
-        : message(message), line(line), column(column) {}
-
-    /**
-     * @brief Returns the error message.
-     * @return The error message.
-     */
-    const char *what() const noexcept override { return message.c_str(); }
+        : InternalError(message), line(line), column(column) {}
 
     /**
      * @brief Get the line number.
@@ -36,9 +55,8 @@ namespace excerpt {
     size_t getColumn() const noexcept { return column; }
 
   private:
-    std::string message; /**< The error message. */
-    size_t line;         /**< The line number. */
-    size_t column;       /**< The column number. */
+    size_t line;   /**< The line number. */
+    size_t column; /**< The column number. */
   };
 
   /**
@@ -53,6 +71,7 @@ namespace excerpt {
     explicit ParserError(const std::string &message, size_t line, size_t column)
         : LexerError(message, line, column) {}
   };
+
 } // namespace excerpt
 
 #endif // EXCERPT_ERRORS_HPP

@@ -1,6 +1,6 @@
 /**
- * @brief Token definitions.
  * @file defs.h
+ * @brief Token definitions.
  */
 
 #ifndef EXCERPT_DEFS_H
@@ -37,6 +37,7 @@ namespace excerpt {
   _(IF, "if")                                                                  \
   _(ELSE, "else")                                                              \
   _(OR, "or")                                                                  \
+  _(AND, "and")                                                                \
   _(TRUE, "true")                                                              \
   _(FALSE, "false")                                                            \
   _(FOR, "for")                                                                \
@@ -44,7 +45,8 @@ namespace excerpt {
   _(SUPER, "super")                                                            \
   _(THIS, "this")                                                              \
   _(NONE, "none")                                                              \
-  _(FN, "fn")
+  _(FN, "fn")                                                                  \
+  _(RETURN, "return")
 
 #define TYPES                                                                  \
   _(IDENTIFIER, "IDENTIFIER")                                                  \

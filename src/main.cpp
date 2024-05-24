@@ -1,11 +1,12 @@
 #include "excerpt/lexer/lexer.hpp"
 #include "excerpt/parser/parser.hpp"
+#include "excerpt/visitors/pretty.hpp"
 #include <iostream>
 
 using namespace excerpt;
 
 int main() {
-  utils::Logger logger("main");
+  utils::Logging::setLevel(utils::LogLevel::ERROR);
 
   std::string input;
   std::string source;
@@ -24,18 +25,10 @@ int main() {
   auto tokens = lexer.all();
 
   Parser parser(tokens);
-  std::unique_ptr<ProgramAST> ast;
+  auto ast = parser.parse();
 
-  try {
-    ast = parser.parse();
-  } catch (const ParserError &e) {
-    return -1;
-  }
-
-  // Print the AST
-  for (const auto &expr : ast->body) {
-    logger.info("{}", expr->str());
-  }
+  PrettyPrinter printer;
+  ast->accept(printer);
 
   return 0;
 }
