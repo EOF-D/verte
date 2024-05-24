@@ -67,7 +67,7 @@ namespace excerpt {
      */
     void visit(VarDeclNode &node) override {
       printIndent() << "VarDecl: " << node.getName() << " : "
-                    << typeToString(node.getType()) << '\n';
+                    << typeToString(node.getTypeInfo()) << '\n';
 
       IndentGuard guard(*this);
       node.getValue()->accept(*this);

@@ -68,7 +68,7 @@ TEST(ParserTest, TestVarDecl) {
   VarDeclNode &varDecl = dynamic_cast<VarDeclNode &>(*ast->getBody()[0]);
 
   EXPECT_EQ(varDecl.getName(), "foo");
-  EXPECT_EQ(varDecl.getType().type, TypeInfo::Type::INTEGER);
+  EXPECT_EQ(varDecl.getTypeInfo().type, TypeInfo::Type::INTEGER);
 
   LiteralNode &literal = dynamic_cast<LiteralNode &>(*varDecl.getValue());
   LiteralValue value = literal.getValue();

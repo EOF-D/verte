@@ -6,7 +6,7 @@
 #ifndef EXCERPT_LEXER_HPP
 #define EXCERPT_LEXER_HPP
 
-#include "../errors.hpp"
+#include "excerpt/errors.hpp"
 #include "excerpt/lexer/token.hpp"
 #include "excerpt_utils/logger.hpp"
 

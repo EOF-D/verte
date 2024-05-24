@@ -6,7 +6,7 @@
 #ifndef EXCERPT_AST_HPP
 #define EXCERPT_AST_HPP
 
-#include "../errors.hpp"
+#include "excerpt/errors.hpp"
 
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APSInt.h>
@@ -116,6 +116,7 @@ namespace excerpt {
       UNARY,     /**< Unary operation node. */
       PROTO,     /**< Function prototype node. */
       BLOCK,     /**< Block node. */
+      RETURN,    /**< Return statement node. */
       FUNC_DECL, /**< Function declaration node. */
       FUNC_CALL  /**< Function call node. */
     };
@@ -192,7 +193,7 @@ namespace excerpt {
      */
     // clang-format off
     LiteralNode(const std::string &value, const TypeInfo &type) 
-      : ASTNode(ASTNode::Type::LITERAL), raw(value), type(type) {
+      : ASTNode(ASTNode::Type::LITERAL), raw(value), type_info(type) {
         // This isn't done in the initializer list to stop toValue from potentially erroring.
         this->value = toValue(raw);
     }
@@ -219,7 +220,7 @@ namespace excerpt {
      * @brief Get the type information.
      * @return The type information.
      */
-    inline const TypeInfo &getType() const { return type; }
+    inline const TypeInfo &getTypeInfo() const { return type_info; }
 
   private:
     /**
@@ -229,7 +230,7 @@ namespace excerpt {
      */
     LiteralValue toValue(const std::string &value) {
       // TODO: Implement more types.
-      switch (type.type) {
+      switch (type_info.type) {
         case TypeInfo::Type::INTEGER: {
           return llvm::APSInt(llvm::APInt(32, std::stoi(value)));
         }
@@ -246,7 +247,7 @@ namespace excerpt {
     }
 
     LiteralValue value; /**< The literal value. */
-    TypeInfo type;      /**< The type information. */
+    TypeInfo type_info; /**< The type information. */
     std::string raw;    /**< The raw value. */
   };
 
@@ -261,7 +262,7 @@ namespace excerpt {
      * @param type The type information.
      */
     VarDeclNode(const std::string &name, const TypeInfo &type, NodePtr value)
-        : ASTNode(ASTNode::Type::VAR_DECL), name(name), type(type),
+        : ASTNode(ASTNode::Type::VAR_DECL), name(name), type_info(type),
           value(std::move(value)) {}
 
     /**
@@ -280,7 +281,7 @@ namespace excerpt {
      * @brief Get the type information.
      * @return The type information.
      */
-    inline const TypeInfo &getType() const { return type; }
+    inline const TypeInfo &getTypeInfo() const { return type_info; }
 
     /**
      * @brief Get the value of the variable.
@@ -289,9 +290,9 @@ namespace excerpt {
     inline NodePtr &getValue() { return value; }
 
   private:
-    std::string name; /**< The variable name. */
-    TypeInfo type;    /**< The type information. */
-    NodePtr value;    /**< The value of the variable. */
+    std::string name;   /**< The variable name. */
+    TypeInfo type_info; /**< The type information. */
+    NodePtr value;      /**< The value of the variable. */
   };
 
   /**
@@ -523,7 +524,7 @@ namespace excerpt {
      * @param expr The expression to return.
      */
     ReturnNode(NodePtr expr)
-        : ASTNode(ASTNode::Type::FUNC_DECL), expr(std::move(expr)) {}
+        : ASTNode(ASTNode::Type::RETURN), expr(std::move(expr)) {}
 
     /**
      * @brief Accept a visitor.

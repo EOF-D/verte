@@ -45,31 +45,31 @@ TEST(NodeTest, TestProgramAST) {
 
 TEST(NodeTest, TestLiteralNode) {
   // Test integer literal
-  LiteralNode intLiteral("42", TypeInfo(TypeInfo::Type::INTEGER, false));
-  EXPECT_EQ(intLiteral.getRaw(), "42");
-  EXPECT_EQ(intLiteral.getType().type, TypeInfo::Type::INTEGER);
+  LiteralNode intLiteral("100", TypeInfo(TypeInfo::Type::INTEGER, false));
+  EXPECT_EQ(intLiteral.getRaw(), "100");
+  EXPECT_EQ(intLiteral.getTypeInfo().type, TypeInfo::Type::INTEGER);
   EXPECT_EQ(intLiteral.getValue().index(), 0); // Check if it's an APSInt
 
   // Test float literal
   LiteralNode floatLiteral("3.14", TypeInfo(TypeInfo::Type::FLOAT, false));
   EXPECT_EQ(floatLiteral.getRaw(), "3.14");
-  EXPECT_EQ(floatLiteral.getType().type, TypeInfo::Type::FLOAT);
+  EXPECT_EQ(floatLiteral.getTypeInfo().type, TypeInfo::Type::FLOAT);
   EXPECT_EQ(floatLiteral.getValue().index(), 1); // Check if it's an APFloat
 
   // Test string literal
   LiteralNode stringLiteral("Hello", TypeInfo(TypeInfo::Type::STRING, false));
   EXPECT_EQ(stringLiteral.getRaw(), "Hello");
-  EXPECT_EQ(stringLiteral.getType().type, TypeInfo::Type::STRING);
+  EXPECT_EQ(stringLiteral.getTypeInfo().type, TypeInfo::Type::STRING);
   EXPECT_EQ(stringLiteral.getValue().index(), 2); // Check if it's a string
 }
 
 TEST(NodeTest, TestVarDeclNode) {
   TypeInfo intType(TypeInfo::Type::INTEGER, false);
-  NodePtr value = std::make_unique<LiteralNode>("42", intType);
-  VarDeclNode varDecl("x", intType, std::move(value));
+  NodePtr value = std::make_unique<LiteralNode>("100", intType);
+  VarDeclNode varDecl("foo", intType, std::move(value));
 
-  EXPECT_EQ(varDecl.getName(), "x");
-  EXPECT_EQ(varDecl.getType().type, TypeInfo::Type::INTEGER);
+  EXPECT_EQ(varDecl.getName(), "foo");
+  EXPECT_EQ(varDecl.getTypeInfo().type, TypeInfo::Type::INTEGER);
   EXPECT_NE(varDecl.getValue(), nullptr);
 }
 
@@ -93,7 +93,7 @@ TEST(NodeTest, TestBinaryNode) {
 
 TEST(NodeTest, TestUnaryNode) {
   NodePtr expr = std::make_unique<LiteralNode>(
-      "42", TypeInfo(TypeInfo::Type::INTEGER, false));
+      "100", TypeInfo(TypeInfo::Type::INTEGER, false));
 
   UnaryNode unary("!", std::move(expr));
   EXPECT_NE(unary.getExpr(), nullptr);
@@ -102,7 +102,7 @@ TEST(NodeTest, TestUnaryNode) {
 
 TEST(NodeTest, TestProtoNode) {
   TypeInfo intType(TypeInfo::Type::INTEGER, false);
-  Params params = {Parameter("x", intType), Parameter("y", intType)};
+  Params params = {Parameter("bar", intType), Parameter("baz", intType)};
   ProtoNode proto("foo", params, intType);
 
   EXPECT_EQ(proto.getName(), "foo");
@@ -128,10 +128,10 @@ TEST(NodeTest, TestBlockNode) {
 TEST(NodeTest, TestFuncDeclNode) {
   std::vector<NodePtr> stmts;
   TypeInfo intType(TypeInfo::Type::INTEGER, false);
-  Params params = {Parameter("x", intType)};
+  Params params = {Parameter("bar", intType)};
 
   ProtoPtr proto = std::make_unique<ProtoNode>("foo", params, intType);
-  NodePtr stmt = std::make_unique<LiteralNode>("42", intType);
+  NodePtr stmt = std::make_unique<LiteralNode>("100", intType);
 
   stmts.push_back(std::move(stmt));
 
@@ -144,7 +144,7 @@ TEST(NodeTest, TestFuncDeclNode) {
 
 TEST(NodeTest, TestReturnNode) {
   NodePtr expr = std::make_unique<LiteralNode>(
-      "42", TypeInfo(TypeInfo::Type::INTEGER, false));
+      "100", TypeInfo(TypeInfo::Type::INTEGER, false));
 
   ReturnNode ret(std::move(expr));
   EXPECT_NE(ret.getExpr(), nullptr);
