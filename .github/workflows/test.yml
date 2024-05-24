@@ -2,6 +2,9 @@ name: "Tests"
 on:
   pull_request:
   push:
+    paths:
+      - '**.cpp'
+      - '**.hpp'
 jobs:
   tests:
     runs-on: ubuntu-latest
