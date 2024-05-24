@@ -48,3 +48,4 @@ _deps
 build
 .devenv
 .pre-commit-config.yaml
+.direnv
