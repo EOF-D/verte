@@ -38,7 +38,7 @@ namespace excerpt {
      * @param stream The output stream.
      */
     template <OutputStream Stream>
-    PrettyPrinter(Stream stream) : stream(stream) {}
+    PrettyPrinter(Stream &stream) : stream(stream) {}
 
     /**
      * @brief Visit a ProgramAST node.
