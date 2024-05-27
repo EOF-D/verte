@@ -58,16 +58,6 @@ namespace excerpt {
     TypeInfo(Type type, bool isConstant) : type(type), isConstant(isConstant) {}
 
     /**
-     * @brief Check if the type is compatible with another type.
-     * @param other The other type to check compatibility with.
-     * @return Whether the types are compatible.
-     */
-    bool isCompatibleWith(const TypeInfo &other) const {
-      // TODO: Implement type compatibility rules here
-      return type == other.type;
-    }
-
-    /**
      * @brief Convert a string to a type.
      * @param type The type to convert.
      * @return The converted type.

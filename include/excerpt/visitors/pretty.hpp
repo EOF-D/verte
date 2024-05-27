@@ -44,133 +44,67 @@ namespace excerpt {
      * @brief Visit a ProgramAST node.
      * @param node The ProgramAST node to visit.
      */
-    void visit(ProgramAST &node) override {
-      printIndent() << "Program:\n";
-
-      IndentGuard guard(*this);
-      for (auto &stmt : node.getBody()) {
-        stmt->accept(*this);
-      }
-    }
+    void visit(ProgramAST &node) override;
 
     /**
      * @brief Visit a LiteralNode node.
      * @param node The LiteralNode node to visit.
      */
-    void visit(LiteralNode &node) override {
-      printIndent() << "Literal: " << node.getRaw() << '\n';
-    }
+    void visit(LiteralNode &node) override;
 
     /**
      * @brief Visit a VarDeclNode node.
      * @param node The VarDeclNode node to visit.
      */
-    void visit(VarDeclNode &node) override {
-      printIndent() << "VarDecl: " << node.getName() << " : "
-                    << typeToString(node.getTypeInfo()) << '\n';
-
-      IndentGuard guard(*this);
-      node.getValue()->accept(*this);
-    }
+    void visit(VarDeclNode &node) override;
 
     /**
      * @brief Visit an IdentNode node.
      * @param node The IdentNode node to visit.
      */
-    void visit(IdentNode &node) override {
-      printIndent() << "Ident: " << node.getName() << '\n';
-    }
+    void visit(IdentNode &node) override;
 
     /**
      * @brief Visit a BinaryNode node.
      * @param node The BinaryNode node to visit.
      */
-    void visit(BinaryNode &node) override {
-      printIndent() << "Binary: " << node.getOp() << '\n';
-      IndentGuard guard(*this);
-
-      node.getLHS()->accept(*this);
-      node.getRHS()->accept(*this);
-    }
+    void visit(BinaryNode &node) override;
 
     /**
      * @brief Visit a UnaryNode node.
      * @param node The UnaryNode node to visit.
      */
-    void visit(UnaryNode &node) override {
-      printIndent() << "Unary: " << node.getOp() << '\n';
-      IndentGuard guard(*this);
-
-      node.getExpr()->accept(*this);
-    }
+    void visit(UnaryNode &node) override;
 
     /**
      * @brief Visit a ProtoNode node.
      * @param node The ProtoNode node to visit.
      */
-    void visit(ProtoNode &node) override {
-      printIndent() << "Proto: " << node.getName() << '\n';
-
-      IndentGuard guard(*this);
-      for (auto &arg : node.getParams())
-        printIndent() << "Arg: " << arg.name << " : " << typeToString(arg.type)
-                      << '\n';
-
-      printIndent() << "Return: " << typeToString(node.getRet()) << '\n';
-    }
+    void visit(ProtoNode &node) override;
 
     /**
      * @brief Visit a BlockNode node.
      * @param node The BlockNode node to visit.
      */
-    void visit(BlockNode &node) override {
-      printIndent() << "Block:\n";
-
-      IndentGuard guard(*this);
-      for (auto &stmt : node.getStmts()) {
-        stmt->accept(*this);
-      }
-    }
+    void visit(BlockNode &node) override;
 
     /**
      * @brief Visit a FuncDeclNode node.
      * @param node The FuncDeclNode node to visit.
      */
-    void visit(FuncDeclNode &node) override {
-      printIndent() << "FuncDecl:\n";
-      IndentGuard guard(*this);
-
-      node.getProto().accept(*this);
-      node.getBody().accept(*this);
-    }
+    void visit(FuncDeclNode &node) override;
 
     /**
      * @brief Visit a ReturnNode node.
      * @param node The ReturnNode node to visit.
      */
-    void visit(ReturnNode &node) override {
-      printIndent() << "Return:\n";
-      IndentGuard guard(*this);
-
-      node.getExpr()->accept(*this);
-    }
+    void visit(ReturnNode &node) override;
 
     /**
      * @brief Visit a CallNode node.
      * @param node The CallNode node to visit.
      */
-    void visit(CallNode &node) override {
-      printIndent() << "Call:\n";
-      IndentGuard guard(*this);
-
-      node.getCallee()->accept(*this);
-      printIndent() << "Args:\n";
-
-      IndentGuard argsGuard(*this);
-      for (auto &arg : node.getArgs()) {
-        arg->accept(*this);
-      }
-    }
+    void visit(CallNode &node) override;
 
   private:
     /**
