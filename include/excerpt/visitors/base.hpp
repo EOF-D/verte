@@ -8,38 +8,91 @@
 
 #include "excerpt/parser/ast.hpp"
 
-// clang-format off
 namespace excerpt {
-  #define DECLARE_VISIT(NodeType) \
-    virtual void visit(NodeType &node) { /* default */ } 
-
-  /**
-   * @brief Base visitor class.
-   */
-  // clang-format on
   class ASTVisitor {
   public:
     /**
-     * @brief Virtual destructor.
+     * @brief Default destructor.
      */
     virtual ~ASTVisitor() = default;
 
-    // Declaring visit methods for each AST node.
-    DECLARE_VISIT(ProgramAST)
-    DECLARE_VISIT(LiteralNode)
-    DECLARE_VISIT(VarDeclNode)
-    DECLARE_VISIT(IdentNode)
-    DECLARE_VISIT(BinaryNode)
-    DECLARE_VISIT(UnaryNode)
-    DECLARE_VISIT(ProtoNode)
-    DECLARE_VISIT(BlockNode)
-    DECLARE_VISIT(FuncDeclNode)
-    DECLARE_VISIT(ReturnNode)
-    DECLARE_VISIT(CallNode)
-  };
-  // clang-format off
+    /**
+     * @brief Visit the program node.
+     * @param node The program node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const ProgramNode &node) -> RetT = 0;
 
-  #undef DECLARE_VISIT
+    /**
+     * @brief Visit a literal node.
+     * @param node The literal node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const LiteralNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a variable declaration node.
+     * @param node The variable declaration node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const VarDeclNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a variable node.
+     * @param node The variable node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const VariableNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a binary operation node.
+     * @param node The binary operation node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const BinaryNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a unary operation node.
+     * @param node The unary operation node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const UnaryNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a proto node.
+     * @param node The proto node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const ProtoNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a block node.
+     * @param node The block node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const BlockNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a function declaration node.
+     * @param node The function declaration node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const FuncDeclNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a function call node.
+     * @param node The function call node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const CallNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit a return node.
+     * @param node The return node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const ReturnNode &node) -> RetT = 0;
+  };
 } // namespace excerpt
 
 #endif // EXCERPT_BASE_HPP

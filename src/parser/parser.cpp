@@ -6,7 +6,7 @@
 #include "excerpt/parser/parser.hpp"
 
 namespace excerpt {
-  [[nodiscard]] std::unique_ptr<ProgramAST> Parser::parse() {
+  [[nodiscard]] std::unique_ptr<ProgramNode> Parser::parse() {
     // PROGRAM -> STMT*
     std::vector<NodePtr> body;
 
@@ -15,7 +15,7 @@ namespace excerpt {
     while (!current().is(Token::Type::END))
       body.push_back(parseStmt());
 
-    return std::make_unique<ProgramAST>(std::move(body));
+    return std::make_unique<ProgramNode>(std::move(body));
   }
 
   [[nodiscard]] NodePtr Parser::parseStmt() {
@@ -79,7 +79,7 @@ namespace excerpt {
     error("Expected a `;` or `{` after the function prototype.");
   }
 
-  [[nodiscard]] ProtoPtr Parser::parseProto() {
+  [[nodiscard]] NodePtr Parser::parseProto() {
     // PROTO -> IDENTIFIER '(' PARAMS ')' '->' TYPE
     auto ident = current();
     if (!match(Token::Type::IDENTIFIER))
@@ -95,7 +95,7 @@ namespace excerpt {
     }
 
     index += 2; // Skip the `->` token.
-    return std::make_unique<ProtoNode>(ident.value, params, parseType());
+    return create<ProtoNode>(ident.value, params, parseType());
   }
 
   [[nodiscard]] std::vector<Parameter> Parser::parseParams() {
@@ -139,8 +139,7 @@ namespace excerpt {
     if (!match(Token::Type::IDENTIFIER))
       error("Expected a type identifier.");
 
-    // TODO: Determine if const or not.
-    return TypeInfo(TypeInfo::toEnum(token.value), false);
+    return TypeInfo(TypeInfo::toDataType(token.value), token.value);
   }
 
   [[nodiscard]] NodePtr Parser::parseReturn() {
@@ -164,7 +163,7 @@ namespace excerpt {
     return expr;
   }
 
-  [[nodiscard]] BlockPtr Parser::parseBlock() {
+  [[nodiscard]] NodePtr Parser::parseBlock() {
     // BLOCK -> '{' STMT* '}'
     std::vector<NodePtr> body;
     if (!match(Token::Type::LBRACE))
@@ -174,7 +173,7 @@ namespace excerpt {
     while (!match(Token::Type::RBRACE))
       body.push_back(parseStmt());
 
-    return std::make_unique<BlockNode>(std::move(body));
+    return create<BlockNode>(std::move(body));
   }
 
   [[nodiscard]] NodePtr Parser::parseExpr() {
@@ -213,7 +212,7 @@ namespace excerpt {
       index++; // Consume the operator.
 
       auto expr = parseUnary();
-      return create<UnaryNode>(op.value, std::move(expr));
+      return create<UnaryNode>(std::move(expr), op.value);
     }
 
     // If it's not a unary operator, parse the primary expression.
@@ -226,18 +225,18 @@ namespace excerpt {
 
     // Check for literals.
     if (match(Token::Type::STRING)) {
-      TypeInfo type(TypeInfo::Type::STRING, false);
+      TypeInfo type(TypeInfo::DataType::STRING);
       return create<LiteralNode>(token.value, type);
     }
 
     else if (match(Token::Type::NUMBER)) {
-      TypeInfo type(TypeInfo::Type::INTEGER, false);
+      TypeInfo type(TypeInfo::DataType::INTEGER);
       return create<LiteralNode>(token.value, type);
     }
 
     else if (match(Token::Type::IDENTIFIER)) {
-      TypeInfo type(TypeInfo::Type::UNKNOWN, false);
-      auto ident = create<IdentNode>(token.value);
+      TypeInfo type(TypeInfo::DataType::UNKNOWN);
+      auto ident = create<VariableNode>(token.value);
 
       // Check if it's a function call.
       if (current().is(Token::Type::LPAREN))

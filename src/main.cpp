@@ -1,6 +1,7 @@
 #include "excerpt/lexer/lexer.hpp"
 #include "excerpt/parser/parser.hpp"
 #include "excerpt/visitors/pretty.hpp"
+
 #include <iostream>
 
 using namespace excerpt;
@@ -29,6 +30,5 @@ int main() {
 
   PrettyPrinter printer;
   ast->accept(printer);
-
   return 0;
 }

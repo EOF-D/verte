@@ -1,572 +1,455 @@
 /**
  * @file ast.hpp
- * @brief AST nodes used for the parser.
+ * @brief This file contains the AST nodes for the parser.
  */
 
 #ifndef EXCERPT_AST_HPP
 #define EXCERPT_AST_HPP
 
-#include "excerpt/errors.hpp"
+#include "excerpt/types.hpp"
+#include "llvm/IR/Value.h"
 
-#include <llvm/ADT/APFloat.h>
-#include <llvm/ADT/APSInt.h>
-#include <llvm/IR/Value.h>
-
-#include <format>
+#include <concepts>
 #include <memory>
+#include <string>
 #include <variant>
+#include <vector>
 
 namespace excerpt {
-  // Forward declarations.
-  class ASTNode;
-  class BlockNode;
-  class ProtoNode;
-
+  // Forward declaration.
   class ASTVisitor;
-  class TypeInfo;
-  class Parameter;
+  class ASTNode;
 
   // Type aliases.
+  using RetT = std::variant<std::string, TypeInfo, llvm::Value *>;
   using NodePtr = std::unique_ptr<ASTNode>;
-  using BlockPtr = std::unique_ptr<BlockNode>;
-  using ProtoPtr = std::unique_ptr<ProtoNode>;
-
-  using LiteralValue = std::variant<llvm::APSInt, llvm::APFloat, std::string>;
-  using Params = std::vector<Parameter>;
 
   /**
-   * @brief Simple struct to represent type information.
-   */
-  struct TypeInfo {
-    /**
-     * @brief Enum to represent the type of the variable.
-     */
-    enum class Type : uint8_t {
-      INTEGER, /**< Integer type. */
-      FLOAT,   /**< Float type. */
-      STRING,  /**< String type. */
-      UNKNOWN  /**< Unknown type. */
-    } type{Type::UNKNOWN};
-
-    bool isConstant; /**< Whether the variable is a constant. */
-
-    /**
-     * @brief Construct a new TypeInfo object.
-     * @param type The type of the variable.
-     * @param isConstant Whether the variable is a constant.
-     */
-    TypeInfo(Type type, bool isConstant) : type(type), isConstant(isConstant) {}
-
-    /**
-     * @brief Convert a string to a type.
-     * @param type The type to convert.
-     * @return The converted type.
-     */
-    static Type toEnum(const std::string &type) {
-      if (type == "int")
-        return Type::INTEGER;
-
-      if (type == "float")
-        return Type::FLOAT;
-
-      if (type == "string")
-        return Type::STRING;
-
-      return Type::UNKNOWN;
-    }
-  };
-
-  /**
-   * @brief Represents a parameter in a function declaration.
-   */
-  struct Parameter {
-    std::string name; /**< The name of the parameter. */
-    TypeInfo type;    /**< The type of the parameter. */
-
-    /**
-     * @brief Construct a new Parameter object.
-     * @param name The name of the parameter.
-     * @param type The type of the parameter.
-     */
-    Parameter(const std::string &name, const TypeInfo &type)
-        : name(name), type(type) {}
-  };
-
-  /**
-   * @brief Abstract syntax tree (AST) node.
+   * @brief Base class for AST nodes.
    */
   class ASTNode {
   public:
-    enum class Type : uint8_t {
-      PROGRAM,   /**< Program (root) node. */
-      LITERAL,   /**< Literal node. */
-      VAR_DECL,  /**< Variable declaration node. */
-      IDENT,     /**< Identifier node. */
-      BINARY,    /**< Binary operation node. */
-      UNARY,     /**< Unary operation node. */
-      PROTO,     /**< Function prototype node. */
-      BLOCK,     /**< Block node. */
-      RETURN,    /**< Return statement node. */
-      FUNC_DECL, /**< Function declaration node. */
-      FUNC_CALL  /**< Function call node. */
-    };
+    /**
+     * @brief Default destructor.
+     */
+    virtual ~ASTNode() = default;
 
     /**
-     * @brief Construct a new ASTNode object.
-     * @param type The type of the node.
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * \note
+     * Pure virtual method, subclasses should implement.
      */
-    explicit ASTNode(Type type) : type(type) {}
-
-    /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
-     */
-    virtual void accept(ASTVisitor &visitor) = 0;
-
-    /**
-     * @brief Get the type of the node.
-     * @return The type of the node.
-     */
-    inline Type getType() const { return type; }
-
-  private:
-    Type type; /**< The type of the node. */
+    virtual auto accept(ASTVisitor &visitor) const -> RetT = 0;
   };
 
   /**
-   * @brief Program (root) AST node.
+   * @brief AST node concept.
+   * @tparam T Type of the node.
    */
-  class ProgramAST : public ASTNode {
+  template <typename T>
+  concept ASTNodeType = std::derived_from<T, ASTNode>;
+
+  /**
+   * @brief Program node (root).
+   */
+  class ProgramNode : public ASTNode {
   public:
     /**
-     * @brief Construt a new ProgramAST object.
-     * @param body The body of the program.
+     * @brief Default constructor.
      */
-    ProgramAST(std::vector<NodePtr> body)
-        : ASTNode(ASTNode::Type::PROGRAM), body(std::move(body)) {}
+    ProgramNode() = default;
 
     /**
-     * @brief Destroy the ProgramAST object.
+     * @brief Construct a new ProgramNode.
+     * @param body Program body.
      */
-    ~ProgramAST() {
-      for (auto &node : body)
-        node.reset();
-
-      body.clear();
-    }
+    explicit ProgramNode(std::vector<NodePtr> body) : body(std::move(body)) {}
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the program body.
+     * @return Program body.
      */
-    void accept(ASTVisitor &visitor) override;
+    const std::vector<NodePtr> &getBody() const { return body; }
 
     /**
-     * @brief Get the body of the program.
-     * @return The body of the program.
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
      */
-    inline const std::vector<NodePtr> &getBody() const { return body; }
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    std::vector<NodePtr> body; /**< The body of the program. */
+    std::vector<NodePtr> body; /**< Program body. */
   };
 
   /**
-   * @brief Literal AST node.
+   * @brief Literal node.
    */
   class LiteralNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new LiteralNode object.
-     * @param value The literal value.
-     * @param type The type information.
+     * @brief Construct a new LiteralNode.
+     * @param typeInfo Type information of the literal.
+     * @param value Value of the literal.
      */
-    // clang-format off
-    LiteralNode(const std::string &value, const TypeInfo &type) 
-      : ASTNode(ASTNode::Type::LITERAL), raw(value), type_info(type) {
-        // This isn't done in the initializer list to stop toValue from potentially erroring.
-        this->value = toValue(raw);
-    }
-    // clang-format on
+    LiteralNode(std::string value, TypeInfo typeInfo)
+        : value(std::move(value)), typeInfo(typeInfo) {}
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the value of the literal.
+     * @return Value of the literal.
      */
-    void accept(ASTVisitor &visitor) override;
+    const std::string &getValue() const { return value; }
 
     /**
-     * @brief Get the raw value.
-     * @return The raw value.
+     * @brief Get the type information of the literal.
+     * @return Type information of the literal.
      */
-    inline const std::string &getRaw() const { return raw; }
+    const TypeInfo &getTypeInfo() const { return typeInfo; }
 
     /**
-     * @brief Get the literal value.
-     * @return The literal value.
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
      */
-    inline const LiteralValue &getValue() const { return value; }
-    /**
-     * @brief Get the type information.
-     * @return The type information.
-     */
-    inline const TypeInfo &getTypeInfo() const { return type_info; }
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    /**
-     * @brief Convert a string value to a LiteralValue.
-     * @param value The value to convert.
-     * @return The LiteralValue.
-     */
-    LiteralValue toValue(const std::string &value) {
-      // TODO: Implement more types.
-      switch (type_info.type) {
-        case TypeInfo::Type::INTEGER: {
-          return llvm::APSInt(llvm::APInt(32, std::stoi(value)));
-        }
-
-        case TypeInfo::Type::FLOAT:
-          return llvm::APFloat(std::stod(value));
-
-        case TypeInfo::Type::STRING:
-          return value;
-
-        default:
-          throw InternalError("Unknown type");
-      }
-    }
-
-    LiteralValue value; /**< The literal value. */
-    TypeInfo type_info; /**< The type information. */
-    std::string raw;    /**< The raw value. */
+    std::string value; /**< Value of the literal. */
+    TypeInfo typeInfo; /**< Type information. */
   };
 
   /**
-   * @brief Variable declaration AST node. (e.g., foo: int = 1;)
+   * @brief Variable declaration node.
    */
   class VarDeclNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new VarDeclNode object.
-     * @param name The variable name.
-     * @param type The type information.
+     * @brief Construct a new VarDeclNode
+     * @param name Name of the variable.
+     * @param typeInfo Type information of the variable.
+     * @param value Value of the variable.
      */
-    VarDeclNode(const std::string &name, const TypeInfo &type, NodePtr value)
-        : ASTNode(ASTNode::Type::VAR_DECL), name(name), type_info(type),
-          value(std::move(value)) {}
+    VarDeclNode(std::string name, TypeInfo typeInfo, NodePtr value)
+        : name(std::move(name)), typeInfo(typeInfo), value(std::move(value)) {}
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the name of the variable.
+     * @return Name of the variable.
      */
-    void accept(ASTVisitor &visitor) override;
+    const std::string &getName() const { return name; }
 
     /**
-     * @brief Get the variable name.
-     * @return The variable name.
+     * @brief Get the type information of the variable.
+     * @return Type information of the variable.
      */
-    inline const std::string &getName() const { return name; }
-
-    /**
-     * @brief Get the type information.
-     * @return The type information.
-     */
-    inline const TypeInfo &getTypeInfo() const { return type_info; }
+    const TypeInfo &getTypeInfo() const { return typeInfo; }
 
     /**
      * @brief Get the value of the variable.
-     * @return The value of the variable.
+     * @return Value of the variable.
      */
-    inline NodePtr &getValue() { return value; }
+    const NodePtr &getValue() const { return value; }
+
+    /**
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
+     */
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    std::string name;   /**< The variable name. */
-    TypeInfo type_info; /**< The type information. */
-    NodePtr value;      /**< The value of the variable. */
+    std::string name;  /**< Name of the variable. */
+    TypeInfo typeInfo; /**< Type information. */
+    NodePtr value;     /**< Value of the variable. */
   };
 
   /**
-   * @brief Identifier AST node.
+   * @brief Variable node.
    */
-  class IdentNode : public ASTNode {
+  class VariableNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new IdentNode object.
-     * @param name The identifier name.
+     * @brief Construct a new VariableNode.
+     * @param name Name of the variable.
      */
-    IdentNode(const std::string &name)
-        : ASTNode(ASTNode::Type::IDENT), name(name) {}
+    VariableNode(std::string name) : name(std::move(name)) {}
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the name of the variable.
+     * @return Name of the variable.
      */
-    void accept(ASTVisitor &visitor) override;
+    const std::string &getName() const { return name; }
 
     /**
-     * @brief Get the identifier name.
-     * @return The identifier name.
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
      */
-    inline const std::string &getName() const { return name; }
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    std::string name; /**< The identifier name. */
+    std::string name; /**< Name of the variable. */
   };
 
   /**
-   * @brief Binary operation AST node. (e.g., +, -, *, /, <, >, ==, etc.)
+   * @brief Binary operation node.
    */
   class BinaryNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new BinaryNode object.
-     * @param lhs The left-hand side expression.
-     * @param rhs The right-hand side expression.
-     * @param op The operator.
+     * @brief Construct a new BinaryNode.
+     * @param lhs Left-hand side of the binary operation.
+     * @param rhs Right-hand side of the binary operation.
+     * @param op Operator.
      */
-    BinaryNode(NodePtr lhs, NodePtr rhs, const std::string &op)
-        : ASTNode(ASTNode::Type::BINARY), lhs(std::move(lhs)),
-          rhs(std::move(rhs)), op(op) {}
-
-    /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
-     */
-    void accept(ASTVisitor &visitor) override;
+    BinaryNode(NodePtr lhs, NodePtr rhs, std::string op)
+        : lhs(std::move(lhs)), rhs(std::move(rhs)), op(std::move(op)) {}
 
     /**
      * @brief Get the left-hand side expression.
      * @return The left-hand side expression.
      */
-    inline NodePtr &getLHS() { return lhs; }
+    const NodePtr &getLHS() const { return lhs; }
 
     /**
      * @brief Get the right-hand side expression.
      * @return The right-hand side expression.
      */
-    inline NodePtr &getRHS() { return rhs; }
+    const NodePtr &getRHS() const { return rhs; }
 
     /**
      * @brief Get the operator.
      * @return The operator.
      */
-    inline const std::string &getOp() const { return op; }
+    const std::string &getOp() const { return op; }
+
+    /**
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
+     */
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    NodePtr lhs;    /**< The left-hand side expression. */
-    NodePtr rhs;    /**< The right-hand side expression. */
-    std::string op; /**< The operator. */
+    NodePtr lhs;    /**< Left-hand side. */
+    NodePtr rhs;    /**< Right-hand side. */
+    std::string op; /**< Operator. */
   };
 
   /**
-   * @brief Unary operation AST node. (e.g., !, -, etc.)
+   * @brief Unary operation node.
    */
   class UnaryNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new UnaryNode object.
-     * @param expr The expression.
-     * @param op The operator.
+     * @brief Construct a new UnaryNode.
+     * @param operand Operand of the unary operation.
+     * @param op Operator.
      */
-    UnaryNode(const std::string op, NodePtr expr)
-        : ASTNode(ASTNode::Type::UNARY), op(op), expr(std::move(expr)) {}
+    UnaryNode(NodePtr operand, std::string op)
+        : operand(std::move(operand)), op(std::move(op)) {}
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the operand of the unary operation.
+     * @return The operand of the unary operation.
      */
-    void accept(ASTVisitor &visitor) override;
-
-    /**
-     * @brief Get the expression.
-     * @return The expression.
-     */
-    inline NodePtr &getExpr() { return expr; }
+    const NodePtr &getOperand() const { return operand; }
 
     /**
      * @brief Get the operator.
      * @return The operator.
      */
-    inline const std::string &getOp() const { return op; }
+    const std::string &getOp() const { return op; }
+
+    /**
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
+     */
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    std::string op; /**< The operator. */
-    NodePtr expr;   /**< The expression. */
+    NodePtr operand; /**< Operand. */
+    std::string op;  /**< Operator. */
   };
 
   /**
-   * @brief Function prototype AST node.
+   * @brief Prototype node.
    */
   class ProtoNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new PrototypeExpressionNode object
-     * @param name The name of the prototype
-     * @param args The args of the prototype.
-     * @param ret The return type.
+     * @brief Construct a new ProtoNode.
+     * @param name Name of the function.
+     * @param args Arguments of the function.
+     * @param returnType Return type of the function.
      */
-    ProtoNode(const std::string &name, Params &params, TypeInfo ret)
-        : ASTNode(ASTNode::Type::PROTO), name(name), args(std::move(params)),
-          ret(ret) {}
+    // clang-format off
+    ProtoNode(const std::string &name, std::vector<Parameter> params, TypeInfo returnType)
+        : name(std::move(name)), params(std::move(params)), returnType(returnType) {}
+    // clang-format on
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the name of the function.
+     * @return Name of the function.
      */
-    void accept(ASTVisitor &visitor) override;
+    const std::string &getName() const { return name; }
 
     /**
-     * @brief Get the name of the prototype.
-     * @return The name of the prototype.
+     * @brief Get the parameters of the function.
+     * @return Parameters of the function.
      */
-    inline const std::string &getName() const { return name; }
+    const std::vector<Parameter> &getParams() const { return params; }
 
     /**
-     * @brief Get the parameters of the prototype.
-     * @return The parameters of the prototype.
+     * @brief Get the return type of the function.
+     * @return Return type of the function.
      */
-    inline const Params &getParams() const { return args; }
+    const TypeInfo &getRetType() const { return returnType; }
 
     /**
-     * @brief Get the return type of the prototype.
-     * @return The return type of the prototype.
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
      */
-    inline TypeInfo getRet() const { return ret; }
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    std::string name; /**< The name of the prototype. */
-    Params args;      /**< The arguments of the prototype. */
-    TypeInfo ret;     /**< The return type of the prototype. */
+    std::string name;              /**< Name of the function. */
+    std::vector<Parameter> params; /**< Arguments of the function. */
+    TypeInfo returnType;           /**< Return type. */
   };
 
   /**
-   * @brief Block AST node.
+   * @brief Block node.
    */
   class BlockNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new BlockNode object.
-     * @param stmts The statements in the block.
+     * @brief Construct a new BlockNode.
+     * @param body Body of the block.
      */
-    BlockNode(std::vector<NodePtr> stmts)
-        : ASTNode(ASTNode::Type::BLOCK), stmts(std::move(stmts)) {}
+    BlockNode(std::vector<NodePtr> body) : body(std::move(body)) {}
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the body of the block.
+     * @return Body of the block.
      */
-    void accept(ASTVisitor &visitor) override;
+    const std::vector<NodePtr> &getBody() const { return body; }
 
     /**
-     * @brief Get the statements in the block.
-     * @return The statements in the block.
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
      */
-    inline const std::vector<NodePtr> &getStmts() const { return stmts; }
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    std::vector<NodePtr> stmts; /**< The statements in the block. */
+    std::vector<NodePtr> body; /**< Body of the block. */
   };
 
   /**
-   * @brief Function declaration AST node.
+   * @brief Function declaration node.
    */
   class FuncDeclNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new FuncDeclNode object.
-     * @param proto The function prototype.
-     * @param body The function body.
+     * @brief Construct a new FuncDeclNode.
+     * @param proto Prototype of the function.
+     * @param body Body of the function.
      */
-    FuncDeclNode(ProtoPtr proto, BlockPtr body)
-        : ASTNode(ASTNode::Type::FUNC_DECL), proto(std::move(proto)),
-          body(std::move(body)) {}
+    FuncDeclNode(NodePtr proto, NodePtr body)
+        : proto(std::move(proto)), body(std::move(body)) {}
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the prototype of the function.
+     * @return Prototype of the function.
      */
-    void accept(ASTVisitor &visitor) override;
+    const NodePtr &getProto() const { return proto; }
 
     /**
-     * @brief Get the function prototype.
-     * @return The function prototype.
+     * @brief Get the body of the function.
+     * @return Body of the function.
      */
-    inline ProtoNode &getProto() const { return *proto; }
+    const NodePtr &getBody() const { return body; }
 
     /**
-     * @brief Get the function body.
-     * @return The function body.
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
      */
-    inline BlockNode &getBody() const { return *body; }
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    ProtoPtr proto; /**< The function prototype. */
-    BlockPtr body;  /**< The function body. */
+    NodePtr proto; /**< Prototype. */
+    NodePtr body;  /**< Body. */
   };
 
   /**
-   * @brief Return statement AST node.
-   */
-  class ReturnNode : public ASTNode {
-  public:
-    /**
-     * @brief Construct a new ReturnNode object.
-     * @param expr The expression to return.
-     */
-    ReturnNode(NodePtr expr)
-        : ASTNode(ASTNode::Type::RETURN), expr(std::move(expr)) {}
-
-    /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
-     */
-    void accept(ASTVisitor &visitor) override;
-
-    /**
-     * @brief Get the expression to return.
-     * @return The expression to return.
-     */
-    inline NodePtr &getExpr() { return expr; }
-
-  private:
-    NodePtr expr; /**< The expression to return. */
-  };
-
-  /**
-   * @brief Function call AST node.
+   * @brief Function call node.
    */
   class CallNode : public ASTNode {
   public:
     /**
-     * @brief Construct a new CallNode object.
-     * @param callee The callee.
-     * @param args The arguments.
+     * @brief Construct a new CallNode.
+     * @param callee Callee of the function call.
+     * @param args Arguments of the function call.
      */
     CallNode(NodePtr callee, std::vector<NodePtr> args)
-        : ASTNode(ASTNode::Type::FUNC_CALL), callee(std::move(callee)),
-          args(std::move(args)) {}
+        : callee(std::move(callee)), args(std::move(args)) {}
 
     /**
-     * @brief Accept a visitor.
-     * @param visitor The visitor to accept.
+     * @brief Get the callee of the call expression.
+     * @return The callee of the call expression.
      */
-    void accept(ASTVisitor &visitor) override;
+    const NodePtr &getCallee() const { return callee; }
 
     /**
-     * @brief Get the callee.
-     * @return The callee.
+     * @brief Get the arguments of the call expression.
+     * @return The arguments of the call expression.
      */
-    inline NodePtr &getCallee() { return callee; }
+    const std::vector<NodePtr> &getArgs() const { return args; }
 
     /**
-     * @brief Get the arguments.
-     * @return The arguments.
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
      */
-    inline const std::vector<NodePtr> &getArgs() const { return args; }
+    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
-    NodePtr callee;            /**< The callee. */
-    std::vector<NodePtr> args; /**< The arguments. */
+    NodePtr callee;            /**< The callee of the call expression. */
+    std::vector<NodePtr> args; /**< The args to call with. */
+  };
+
+  /**
+   * @brief Return statement node.
+   */
+  class ReturnNode : public ASTNode {
+  public:
+    /**
+     * @brief Construct a new ReturnNode.
+     * @param value The value to return.
+     */
+    ReturnNode(NodePtr value) : value(std::move(value)) {}
+
+    /**
+     * @brief Get the value to return.
+     * @return The value to return.
+     */
+    const NodePtr &getValue() const { return value; }
+
+    /**
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
+     */
+    auto accept(ASTVisitor &visitor) const -> RetT override;
+
+  private:
+    NodePtr value; /**< The value to return. */
   };
 } // namespace excerpt
 

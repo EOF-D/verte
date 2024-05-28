@@ -1,55 +1,53 @@
 /**
  * @file ast.cpp
- * @brief Implements the visitor pattern for the AST.
+ * @brief Implementations of the `accept` methods for AST nodes.
  */
 
 #include "excerpt/parser/ast.hpp"
 #include "excerpt/visitors/base.hpp"
 
 namespace excerpt {
-  // clang-format off
-  void ProgramAST::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto ProgramNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
 
-  void LiteralNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto LiteralNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
 
-  void VarDeclNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
-  }
-  
-  void IdentNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto VarDeclNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
 
-  void BinaryNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
-  }
-  
-  void UnaryNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto VariableNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
 
-  void ProtoNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto BinaryNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
 
-  void BlockNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto UnaryNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
 
-  void FuncDeclNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto ProtoNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
 
-  void ReturnNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto BlockNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
 
-  void CallNode::accept(ASTVisitor &visitor) {
-    visitor.visit(*this);
+  auto FuncDeclNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
   }
-  // clang-format on
+
+  auto CallNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
+  }
+
+  auto ReturnNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
+  }
 } // namespace excerpt

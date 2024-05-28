@@ -1,52 +1,98 @@
 /**
  * @file parser.hpp
- * @brief Handles parsing some tokens to validate them. Creates an AST.
+ * Handles parsing some tokens to validate them. Creates an AST
  */
 
 #ifndef EXCERPT_PARSER_HPP
 #define EXCERPT_PARSER_HPP
 
+#include "excerpt/errors.hpp"
 #include "excerpt/lexer/token.hpp"
 #include "excerpt/parser/ast.hpp"
 #include "excerpt_utils/logger.hpp"
 
 #include <map>
-#include <vector>
 
 namespace excerpt {
   /**
-   * @brief Parses tokens into an AST.
+   * @brief All the binary operator types.
+   */
+  static constexpr std::initializer_list<Token::Type> BINARY_OPERATOR_TYPES = {
+      Token::Type::PLUS,        Token::Type::MINUS,
+      Token::Type::STAR,        Token::Type::SLASH,
+      Token::Type::EQUAL_EQUAL, Token::Type::BANG_EQUAL,
+      Token::Type::LESS,        Token::Type::GREATER,
+      Token::Type::LESS_EQUAL,  Token::Type::GREATER_EQUAL,
+      Token::Type::OR,          Token::Type::AND};
+
+  /**
+   * @brief All the unary operator types.
+   */
+  // TODO: Add more unary operators.
+  static constexpr std::initializer_list<Token::Type> UNARY_OPERATOR_TYPES = {
+      Token::Type::PLUS, Token::Type::MINUS, Token::Type::BANG};
+
+  /**
+   * @brief Mapping of precedence for operators.
+   */
+  static const std::map<Token::Type, int> PRECEDENCE = {
+      {Token::Type::OR, 1},
+      {Token::Type::EQUAL_EQUAL, 2},
+      {Token::Type::BANG_EQUAL, 2},
+      {Token::Type::LESS, 3},
+      {Token::Type::GREATER, 3},
+      {Token::Type::LESS_EQUAL, 3},
+      {Token::Type::GREATER_EQUAL, 3},
+      {Token::Type::PLUS, 4},
+      {Token::Type::MINUS, 4},
+      {Token::Type::STAR, 5},
+      {Token::Type::SLASH, 5},
+      {Token::Type::BANG, 6}};
+
+  /**
+   * @brief Get the precedence of a token.
+   * @param type The token type.
+   * @return The precedence.
+   */
+  [[nodiscard]] static inline int getPrecedence(Token::Type type) {
+    if (PRECEDENCE.contains(type))
+      return PRECEDENCE.at(type);
+
+    return -1;
+  }
+
+  /**
+   * @brief Handles parsing of tokens.
    */
   class Parser {
   public:
     /**
      * @brief Construct a new Parser object.
-     * @param tokens The tokens to parse.
+     * @param tokens Tokens to parse.
      */
-    explicit Parser(std::vector<Token> &tokens) noexcept
-        : tokens(tokens), logger("parser"), index(0) {}
+    explicit Parser(std::vector<Token> tokens) noexcept
+        : index(0), tokens(tokens), logger("parser") {}
 
     /**
-     * @brief Parse the tokens into an AST.
+     * @brief parse the tokens into an AST.
+     * @return The program root node.
      */
-    [[nodiscard]] std::unique_ptr<ProgramAST> parse();
+    [[nodiscard]] std::unique_ptr<ProgramNode> parse();
 
   private:
     /**
-     * @brief Parse a statement.
-     * @return The parsed statement.
+     * @brief Parse a single statement.
+     * @return The statement node.
      */
     [[nodiscard]] NodePtr parseStmt();
 
     /**
-     * @brief Parse a variable declaration statement.
-     * @return The parsed variable declaration statement.
+     * @brief Parse a variable declaration statment.
      */
     [[nodiscard]] NodePtr parseVarDecl();
 
     /**
      * @brief Parse a function declaration statement.
-     * @return The parsed function declaration statement.
      */
     [[nodiscard]] NodePtr parseFuncDecl();
 
@@ -54,7 +100,7 @@ namespace excerpt {
      * @brief Parse prototype for a function declaration.
      * @return The parsed prototype.
      */
-    [[nodiscard]] ProtoPtr parseProto();
+    [[nodiscard]] NodePtr parseProto();
 
     /**
      * @brief Parse a parameter list for a function declaration.
@@ -90,7 +136,7 @@ namespace excerpt {
      * @brief Parse a block of statements.
      * @return The parsed block of statements.
      */
-    [[nodiscard]] BlockPtr parseBlock();
+    [[nodiscard]] NodePtr parseBlock();
 
     /**
      * @brief Parse an expression.
@@ -217,58 +263,10 @@ namespace excerpt {
       return std::make_unique<T>(std::forward<Args>(args)...);
     }
 
-  private:
-    size_t index;              /**< The current index in the token stream. */
-    std::vector<Token> tokens; /**< The tokens to parse. */
-    utils::Logger logger;      /**< The logger for the parser. */
+    size_t index;              /** Current index of the token. */
+    std::vector<Token> tokens; /** Tokens to parse. */
+    utils::Logger logger;
   };
-
-  /**
-   * @brief All the binary operator types.
-   */
-  static constexpr std::initializer_list<Token::Type> BINARY_OPERATOR_TYPES = {
-      Token::Type::PLUS,        Token::Type::MINUS,
-      Token::Type::STAR,        Token::Type::SLASH,
-      Token::Type::EQUAL_EQUAL, Token::Type::BANG_EQUAL,
-      Token::Type::LESS,        Token::Type::GREATER,
-      Token::Type::LESS_EQUAL,  Token::Type::GREATER_EQUAL,
-      Token::Type::OR,          Token::Type::AND};
-
-  /**
-   * @brief All the unary operator types.
-   */
-  // TODO: Add more unary operators.
-  static constexpr std::initializer_list<Token::Type> UNARY_OPERATOR_TYPES = {
-      Token::Type::PLUS, Token::Type::MINUS, Token::Type::BANG};
-
-  /**
-   * @brief Mapping of precedence for operators.
-   */
-  static const std::map<Token::Type, int> PRECEDENCE = {
-      {Token::Type::OR, 1},
-      {Token::Type::EQUAL_EQUAL, 2},
-      {Token::Type::BANG_EQUAL, 2},
-      {Token::Type::LESS, 3},
-      {Token::Type::GREATER, 3},
-      {Token::Type::LESS_EQUAL, 3},
-      {Token::Type::GREATER_EQUAL, 3},
-      {Token::Type::PLUS, 4},
-      {Token::Type::MINUS, 4},
-      {Token::Type::STAR, 5},
-      {Token::Type::SLASH, 5},
-      {Token::Type::BANG, 6}};
-
-  /**
-   * @brief Get the precedence of a token.
-   * @param type The token type.
-   * @return The precedence.
-   */
-  [[nodiscard]] static inline int getPrecedence(Token::Type type) {
-    if (PRECEDENCE.contains(type))
-      return PRECEDENCE.at(type);
-
-    return -1;
-  }
 } // namespace excerpt
 
 #endif // EXCERPT_PARSER_HPP

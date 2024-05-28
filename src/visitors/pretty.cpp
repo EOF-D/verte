@@ -1,96 +1,114 @@
 /**
  * @file pretty.cpp
- * @brief Implementation of the pretty printer for the AST.
+ * @brief Implementation of the PrettyPrinter class.
  */
 
 #include "excerpt/visitors/pretty.hpp"
 
 namespace excerpt {
-  void PrettyPrinter::visit(ProgramAST &node) {
-    printIndent() << "Program:\n";
 
+  auto PrettyPrinter::visit(const ProgramNode &node) -> RetT {
+    printIndent() << "Program:\n";
     IndentGuard guard(*this);
-    for (auto &stmt : node.getBody()) {
+
+    for (const auto &stmt : node.getBody()) {
       stmt->accept(*this);
     }
+
+    return {};
   }
 
-  void PrettyPrinter::visit(LiteralNode &node) {
-    printIndent() << "Literal: " << node.getRaw() << '\n';
+  auto PrettyPrinter::visit(const LiteralNode &node) -> RetT {
+    printIndent() << "Literal: " << node.getValue() << " : "
+                  << node.getTypeInfo().name << '\n';
+
+    return {};
   }
 
-  void PrettyPrinter::visit(VarDeclNode &node) {
+  auto PrettyPrinter::visit(const VarDeclNode &node) -> RetT {
     printIndent() << "VarDecl: " << node.getName() << " : "
-                  << typeToString(node.getTypeInfo()) << '\n';
+                  << node.getTypeInfo().name << '\n';
 
     IndentGuard guard(*this);
     node.getValue()->accept(*this);
+    return {};
   }
 
-  void PrettyPrinter::visit(IdentNode &node) {
+  auto PrettyPrinter::visit(const VariableNode &node) -> RetT {
     printIndent() << "Ident: " << node.getName() << '\n';
+    return {};
   }
 
-  void PrettyPrinter::visit(BinaryNode &node) {
+  auto PrettyPrinter::visit(const BinaryNode &node) -> RetT {
     printIndent() << "Binary: " << node.getOp() << '\n';
     IndentGuard guard(*this);
 
     node.getLHS()->accept(*this);
     node.getRHS()->accept(*this);
+    return {};
   }
 
-  void PrettyPrinter::visit(UnaryNode &node) {
+  auto PrettyPrinter::visit(const UnaryNode &node) -> RetT {
     printIndent() << "Unary: " << node.getOp() << '\n';
     IndentGuard guard(*this);
 
-    node.getExpr()->accept(*this);
+    node.getOperand()->accept(*this);
+    return {};
   }
 
-  void PrettyPrinter::visit(ProtoNode &node) {
+  auto PrettyPrinter::visit(const ProtoNode &node) -> RetT {
     printIndent() << "Proto: " << node.getName() << '\n';
-
     IndentGuard guard(*this);
-    for (auto &arg : node.getParams())
-      printIndent() << "Arg: " << arg.name << " : " << typeToString(arg.type)
-                    << '\n';
 
-    printIndent() << "Return: " << typeToString(node.getRet()) << '\n';
+    for (const auto &param : node.getParams()) {
+      printIndent() << "Arg: " << param.name << " : " << param.typeInfo.name
+                    << '\n';
+    }
+
+    printIndent() << "Return: " << node.getRetType().name << '\n';
+    return {};
   }
 
-  void PrettyPrinter::visit(BlockNode &node) {
+  auto PrettyPrinter::visit(const BlockNode &node) -> RetT {
     printIndent() << "Block:\n";
-
     IndentGuard guard(*this);
-    for (auto &stmt : node.getStmts()) {
+
+    for (const auto &stmt : node.getBody()) {
       stmt->accept(*this);
     }
+
+    return {};
   }
 
-  void PrettyPrinter::visit(FuncDeclNode &node) {
+  auto PrettyPrinter::visit(const FuncDeclNode &node) -> RetT {
     printIndent() << "FuncDecl:\n";
     IndentGuard guard(*this);
 
-    node.getProto().accept(*this);
-    node.getBody().accept(*this);
+    node.getProto()->accept(*this);
+    node.getBody()->accept(*this);
+    return {};
   }
 
-  void PrettyPrinter::visit(ReturnNode &node) {
-    printIndent() << "Return:\n";
-    IndentGuard guard(*this);
-
-    node.getExpr()->accept(*this);
-  }
-
-  void PrettyPrinter::visit(CallNode &node) {
+  auto PrettyPrinter::visit(const CallNode &node) -> RetT {
     printIndent() << "Call:\n";
     IndentGuard guard(*this);
 
     node.getCallee()->accept(*this);
     printIndent() << "Args:\n";
-
     IndentGuard argsGuard(*this);
-    for (auto &arg : node.getArgs()) {
+
+    for (const auto &arg : node.getArgs()) {
       arg->accept(*this);
     }
+
+    return {};
+  }
+
+  auto PrettyPrinter::visit(const ReturnNode &node) -> RetT {
+    printIndent() << "Return:\n";
+    IndentGuard guard(*this);
+
+    node.getValue()->accept(*this);
+    return {};
   }
 } // namespace excerpt
