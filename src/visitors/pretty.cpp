@@ -6,109 +6,98 @@
 #include "excerpt/visitors/pretty.hpp"
 
 namespace excerpt {
-
-  auto PrettyPrinter::visit(const ProgramNode &node) -> RetT {
+  void PrettyPrinter::visit(ProgramNode &node) {
     printIndent() << "Program:\n";
     IndentGuard guard(*this);
 
-    for (const auto &stmt : node.getBody()) {
-      stmt->accept(*this);
+    for (auto &stmtVariant : node.getBody()) {
+      std::visit([this](auto &stmtPtr) { stmtPtr->accept(*this); },
+                 stmtVariant);
     }
-
-    return {};
   }
 
-  auto PrettyPrinter::visit(const LiteralNode &node) -> RetT {
+  void PrettyPrinter::visit(LiteralNode &node) {
     printIndent() << "Literal: " << node.getValue() << " : "
                   << node.getTypeInfo().name << '\n';
-
-    return {};
   }
 
-  auto PrettyPrinter::visit(const VarDeclNode &node) -> RetT {
+  void PrettyPrinter::visit(VarDeclNode &node) {
     printIndent() << "VarDecl: " << node.getName() << " : "
                   << node.getTypeInfo().name << '\n';
 
     IndentGuard guard(*this);
-    node.getValue()->accept(*this);
-    return {};
+    std::visit([this](auto &value) { value->accept(*this); }, node.getValue());
   }
 
-  auto PrettyPrinter::visit(const VariableNode &node) -> RetT {
-    printIndent() << "Ident: " << node.getName() << '\n';
-    return {};
+  void PrettyPrinter::visit(VariableNode &node) {
+    printIndent() << "Variable: " << node.getName() << '\n';
   }
 
-  auto PrettyPrinter::visit(const BinaryNode &node) -> RetT {
+  void PrettyPrinter::visit(BinaryNode &node) {
     printIndent() << "Binary: " << node.getOp() << '\n';
     IndentGuard guard(*this);
 
-    node.getLHS()->accept(*this);
-    node.getRHS()->accept(*this);
-    return {};
+    std::visit([this](auto &lhsPtr) { lhsPtr->accept(*this); }, node.getLHS());
+    std::visit([this](auto &rhsPtr) { rhsPtr->accept(*this); }, node.getRHS());
   }
 
-  auto PrettyPrinter::visit(const UnaryNode &node) -> RetT {
+  void PrettyPrinter::visit(UnaryNode &node) {
     printIndent() << "Unary: " << node.getOp() << '\n';
     IndentGuard guard(*this);
 
-    node.getOperand()->accept(*this);
-    return {};
+    std::visit([this](auto &operandPtr) { operandPtr->accept(*this); },
+               node.getOperand());
   }
 
-  auto PrettyPrinter::visit(const ProtoNode &node) -> RetT {
+  void PrettyPrinter::visit(ProtoNode &node) {
     printIndent() << "Proto: " << node.getName() << '\n';
     IndentGuard guard(*this);
 
-    for (const auto &param : node.getParams()) {
+    for (auto &param : node.getParams()) {
       printIndent() << "Arg: " << param.name << " : " << param.typeInfo.name
                     << '\n';
     }
 
     printIndent() << "Return: " << node.getRetType().name << '\n';
-    return {};
   }
 
-  auto PrettyPrinter::visit(const BlockNode &node) -> RetT {
+  void PrettyPrinter::visit(BlockNode &node) {
     printIndent() << "Block:\n";
     IndentGuard guard(*this);
 
-    for (const auto &stmt : node.getBody()) {
-      stmt->accept(*this);
+    for (auto &stmtVariant : node.getBody()) {
+      std::visit([this](auto &stmtPtr) { stmtPtr->accept(*this); },
+                 stmtVariant);
     }
-
-    return {};
   }
 
-  auto PrettyPrinter::visit(const FuncDeclNode &node) -> RetT {
+  void PrettyPrinter::visit(FuncDeclNode &node) {
     printIndent() << "FuncDecl:\n";
     IndentGuard guard(*this);
 
-    node.getProto()->accept(*this);
-    node.getBody()->accept(*this);
-    return {};
+    std::visit([this](auto &proto) { proto->accept(*this); }, node.getProto());
+    std::visit([this](auto &body) { body->accept(*this); }, node.getBody());
   }
 
-  auto PrettyPrinter::visit(const CallNode &node) -> RetT {
+  void PrettyPrinter::visit(CallNode &node) {
     printIndent() << "Call:\n";
     IndentGuard guard(*this);
 
-    node.getCallee()->accept(*this);
+    std::visit([this](auto &callee) { callee->accept(*this); },
+               node.getCallee());
+
     printIndent() << "Args:\n";
     IndentGuard argsGuard(*this);
 
-    for (const auto &arg : node.getArgs()) {
-      arg->accept(*this);
+    for (auto &argVariant : node.getArgs()) {
+      std::visit([this](auto &argPtr) { argPtr->accept(*this); }, argVariant);
     }
-
-    return {};
   }
 
-  auto PrettyPrinter::visit(const ReturnNode &node) -> RetT {
+  void PrettyPrinter::visit(ReturnNode &node) {
     printIndent() << "Return:\n";
     IndentGuard guard(*this);
 
-    node.getValue()->accept(*this);
-    return {};
+    std::visit([this](auto &value) { value->accept(*this); }, node.getValue());
   }
 } // namespace excerpt

@@ -256,7 +256,6 @@ namespace excerpt {
     }
 
     error("Expected a primary expression.");
-    return nullptr;
   }
 
   [[nodiscard]] NodePtr Parser::parseCall(NodePtr callee) {

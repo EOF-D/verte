@@ -19,7 +19,7 @@ int main() {
     if (input == "debug()")
       break;
 
-    source += input + "\n";
+    source += input;
   } while (input != "debug()");
 
   Lexer lexer(source);

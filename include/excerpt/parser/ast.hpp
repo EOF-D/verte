@@ -7,8 +7,8 @@
 #define EXCERPT_AST_HPP
 
 #include "excerpt/types.hpp"
-#include "llvm/IR/Value.h"
 
+#include <any>
 #include <concepts>
 #include <memory>
 #include <string>
@@ -16,18 +16,22 @@
 #include <vector>
 
 namespace excerpt {
-  // Forward declaration.
-  class ASTVisitor;
-  class ASTNode;
-
-  // Type aliases.
-  using RetT = std::variant<std::string, TypeInfo, llvm::Value *>;
-  using NodePtr = std::unique_ptr<ASTNode>;
+  /**
+   * @brief Concept to ensure a Visitor has the required visit methods.
+   * @tparam Visitor Visitor type.
+   * @tparam NodeType Node type.
+   */
+  template <typename Visitor, typename NodeType>
+  concept VisitorConcept = requires(Visitor visitor, NodeType node) {
+    // Check if the visitor has the required visit method.
+    { visitor.visit(node) };
+  };
 
   /**
    * @brief Base class for AST nodes.
+   * @tparam Derived Derived node type.
    */
-  class ASTNode {
+  template <typename Derived> class ASTNode {
   public:
     /**
      * @brief Default destructor.
@@ -36,24 +40,39 @@ namespace excerpt {
 
     /**
      * @brief Accept a visitor for the node.
+     * @tparam Visitor Visitor type.
      * @param visitor Visitor to accept.
-     * \note
-     * Pure virtual method, subclasses should implement.
+     * @return The return value of the visitor.
      */
-    virtual auto accept(ASTVisitor &visitor) const -> RetT = 0;
+    // clang-format off
+    template <typename Visitor>
+    requires VisitorConcept<Visitor, Derived>
+    decltype(auto) accept(Visitor &visitor) {
+      // Deduce the ret type of the visitor's visit method.
+      return visitor.visit(static_cast<Derived &>(*this));
+    }
   };
 
-  /**
-   * @brief AST node concept.
-   * @tparam T Type of the node.
-   */
-  template <typename T>
-  concept ASTNodeType = std::derived_from<T, ASTNode>;
+  // Node variant for pointer.
+  // this is horrible.
+  using NodePtr = std::variant<
+    std::unique_ptr<class ProgramNode>,
+    std::unique_ptr<class LiteralNode>,
+    std::unique_ptr<class VarDeclNode>,
+    std::unique_ptr<class VariableNode>,
+    std::unique_ptr<class BinaryNode>,
+    std::unique_ptr<class UnaryNode>,
+    std::unique_ptr<class ProtoNode>,
+    std::unique_ptr<class BlockNode>,
+    std::unique_ptr<class FuncDeclNode>,
+    std::unique_ptr<class CallNode>,
+    std::unique_ptr<class ReturnNode>>;
 
   /**
    * @brief Program node (root).
    */
-  class ProgramNode : public ASTNode {
+  // clang-format on
+  class ProgramNode : public ASTNode<ProgramNode> {
   public:
     /**
      * @brief Default constructor.
@@ -72,13 +91,6 @@ namespace excerpt {
      */
     const std::vector<NodePtr> &getBody() const { return body; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     std::vector<NodePtr> body; /**< Program body. */
   };
@@ -86,7 +98,7 @@ namespace excerpt {
   /**
    * @brief Literal node.
    */
-  class LiteralNode : public ASTNode {
+  class LiteralNode : public ASTNode<LiteralNode> {
   public:
     /**
      * @brief Construct a new LiteralNode.
@@ -108,13 +120,6 @@ namespace excerpt {
      */
     const TypeInfo &getTypeInfo() const { return typeInfo; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     std::string value; /**< Value of the literal. */
     TypeInfo typeInfo; /**< Type information. */
@@ -123,7 +128,7 @@ namespace excerpt {
   /**
    * @brief Variable declaration node.
    */
-  class VarDeclNode : public ASTNode {
+  class VarDeclNode : public ASTNode<VarDeclNode> {
   public:
     /**
      * @brief Construct a new VarDeclNode
@@ -152,13 +157,6 @@ namespace excerpt {
      */
     const NodePtr &getValue() const { return value; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     std::string name;  /**< Name of the variable. */
     TypeInfo typeInfo; /**< Type information. */
@@ -168,7 +166,7 @@ namespace excerpt {
   /**
    * @brief Variable node.
    */
-  class VariableNode : public ASTNode {
+  class VariableNode : public ASTNode<VariableNode> {
   public:
     /**
      * @brief Construct a new VariableNode.
@@ -182,13 +180,6 @@ namespace excerpt {
      */
     const std::string &getName() const { return name; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     std::string name; /**< Name of the variable. */
   };
@@ -196,7 +187,7 @@ namespace excerpt {
   /**
    * @brief Binary operation node.
    */
-  class BinaryNode : public ASTNode {
+  class BinaryNode : public ASTNode<BinaryNode> {
   public:
     /**
      * @brief Construct a new BinaryNode.
@@ -225,13 +216,6 @@ namespace excerpt {
      */
     const std::string &getOp() const { return op; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     NodePtr lhs;    /**< Left-hand side. */
     NodePtr rhs;    /**< Right-hand side. */
@@ -241,7 +225,7 @@ namespace excerpt {
   /**
    * @brief Unary operation node.
    */
-  class UnaryNode : public ASTNode {
+  class UnaryNode : public ASTNode<UnaryNode> {
   public:
     /**
      * @brief Construct a new UnaryNode.
@@ -263,13 +247,6 @@ namespace excerpt {
      */
     const std::string &getOp() const { return op; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     NodePtr operand; /**< Operand. */
     std::string op;  /**< Operator. */
@@ -278,7 +255,7 @@ namespace excerpt {
   /**
    * @brief Prototype node.
    */
-  class ProtoNode : public ASTNode {
+  class ProtoNode : public ASTNode<ProtoNode> {
   public:
     /**
      * @brief Construct a new ProtoNode.
@@ -309,13 +286,6 @@ namespace excerpt {
      */
     const TypeInfo &getRetType() const { return returnType; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     std::string name;              /**< Name of the function. */
     std::vector<Parameter> params; /**< Arguments of the function. */
@@ -325,7 +295,7 @@ namespace excerpt {
   /**
    * @brief Block node.
    */
-  class BlockNode : public ASTNode {
+  class BlockNode : public ASTNode<BlockNode> {
   public:
     /**
      * @brief Construct a new BlockNode.
@@ -339,13 +309,6 @@ namespace excerpt {
      */
     const std::vector<NodePtr> &getBody() const { return body; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     std::vector<NodePtr> body; /**< Body of the block. */
   };
@@ -353,7 +316,7 @@ namespace excerpt {
   /**
    * @brief Function declaration node.
    */
-  class FuncDeclNode : public ASTNode {
+  class FuncDeclNode : public ASTNode<FuncDeclNode> {
   public:
     /**
      * @brief Construct a new FuncDeclNode.
@@ -375,13 +338,6 @@ namespace excerpt {
      */
     const NodePtr &getBody() const { return body; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     NodePtr proto; /**< Prototype. */
     NodePtr body;  /**< Body. */
@@ -390,7 +346,7 @@ namespace excerpt {
   /**
    * @brief Function call node.
    */
-  class CallNode : public ASTNode {
+  class CallNode : public ASTNode<CallNode> {
   public:
     /**
      * @brief Construct a new CallNode.
@@ -412,13 +368,6 @@ namespace excerpt {
      */
     const std::vector<NodePtr> &getArgs() const { return args; }
 
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
-
   private:
     NodePtr callee;            /**< The callee of the call expression. */
     std::vector<NodePtr> args; /**< The args to call with. */
@@ -427,7 +376,7 @@ namespace excerpt {
   /**
    * @brief Return statement node.
    */
-  class ReturnNode : public ASTNode {
+  class ReturnNode : public ASTNode<ReturnNode> {
   public:
     /**
      * @brief Construct a new ReturnNode.
@@ -440,13 +389,6 @@ namespace excerpt {
      * @return The value to return.
      */
     const NodePtr &getValue() const { return value; }
-
-    /**
-     * @brief Accept a visitor for the node.
-     * @param visitor Visitor to accept.
-     * @return The return value of the visitor.
-     */
-    auto accept(ASTVisitor &visitor) const -> RetT override;
 
   private:
     NodePtr value; /**< The value to return. */

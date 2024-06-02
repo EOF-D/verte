@@ -6,11 +6,10 @@
 #ifndef EXCERPT_PRETTY_HPP
 #define EXCERPT_PRETTY_HPP
 
-#include "excerpt/visitors/base.hpp"
+#include "excerpt/parser/ast.hpp"
 
 #include <iostream>
 #include <sstream>
-#include <string>
 
 namespace excerpt {
   /**
@@ -25,7 +24,7 @@ namespace excerpt {
    * @brief The PrettyPrinter class is responsible for printing the AST in
    * readable form.
    */
-  class PrettyPrinter : public ASTVisitor {
+  class PrettyPrinter {
   public:
     /**
      * @brief Construct a new PrettyPrinter object.
@@ -41,70 +40,69 @@ namespace excerpt {
     PrettyPrinter(Stream &stream) : stream(stream) {}
 
     /**
-     * @brief Visit a ProgramAST node.
-     * @param node The ProgramAST node to visit.
+     * @brief Visit a ProgramNode node.
      */
-    auto visit(const ProgramNode &node) -> RetT override;
+    void visit(ProgramNode &node);
 
     /**
      * @brief Visit a LiteralNode node.
      * @param node The LiteralNode node to visit.
      */
-    auto visit(const LiteralNode &node) -> RetT override;
+    void visit(LiteralNode &node);
 
     /**
      * @brief Visit a VarDeclNode node.
      * @param node The VarDeclNode node to visit.
      */
-    auto visit(const VarDeclNode &node) -> RetT override;
+    void visit(VarDeclNode &node);
 
     /**
      * @brief Visit a VariableNode node.
      * @param node The VariableNode node to visit.
      */
-    auto visit(const VariableNode &node) -> RetT override;
+    void visit(VariableNode &node);
 
     /**
      * @brief Visit a BinaryNode node.
      * @param node The BinaryNode node to visit.
      */
-    auto visit(const BinaryNode &node) -> RetT override;
+    void visit(BinaryNode &node);
 
     /**
      * @brief Visit a UnaryNode node.
      * @param node The UnaryNode node to visit.
      */
-    auto visit(const UnaryNode &node) -> RetT override;
+    void visit(UnaryNode &node);
 
     /**
      * @brief Visit a ProtoNode node.
      * @param node The ProtoNode node to visit.
      */
-    auto visit(const ProtoNode &node) -> RetT override;
+    void visit(ProtoNode &node);
 
     /**
      * @brief Visit a BlockNode node.
      * @param node The BlockNode node to visit.
      */
-    auto visit(const BlockNode &node) -> RetT override;
+    void visit(BlockNode &node);
 
     /**
      * @brief Visit a FuncDeclNode node.
      * @param node The FuncDeclNode node to visit.
      */
-    auto visit(const FuncDeclNode &node) -> RetT override;
+    void visit(FuncDeclNode &node);
 
     /**
      * @brief Visit a CallNode node.
      * @param node The CallNode node to visit.
      */
-    auto visit(const CallNode &node) -> RetT override;
+    void visit(CallNode &node);
 
     /**
      * @brief Visit a ReturnNode node.
      * @param node The ReturnNode node to visit.
      */
-    auto visit(const ReturnNode &node) -> RetT override;
+    void visit(ReturnNode &node);
 
   private:
     /**
