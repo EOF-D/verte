@@ -17,8 +17,7 @@ namespace excerpt {
   }
 
   void PrettyPrinter::visit(LiteralNode &node) {
-    printIndent() << "Literal: " << node.getValue() << " : "
-                  << node.getTypeInfo().name << '\n';
+    printIndent() << "Literal: " << node.getValue() << '\n';
   }
 
   void PrettyPrinter::visit(VarDeclNode &node) {
