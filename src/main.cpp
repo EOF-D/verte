@@ -11,47 +11,42 @@
 #include <string>
 
 using namespace verte;
+using namespace verte::codegen;
+using namespace verte::visitors;
 
 int main(int argc, char **argv) {
-  utils::logging::setLevel(utils::LogLevel::ERROR);
-  utils::Logger logger("main");
+  const utils::Logger logger("main");
+  const utils::ArgParser args(argc, argv);
 
-  // Parse command line arguments.
-  utils::ArgParser args(argc, argv);
-
-  std::string inputFile = args.getInputFile();
-  std::string outputFile =
+  const std::string inputFile = args.getInputFile();
+  const std::string outputFile =
       args.getOutputFile().empty() ? "a.out" : args.getOutputFile();
 
   // Read the source code from the input file.
-  auto sourceOrEmpty = args.readInputFile();
+  const auto sourceOrEmpty = args.readInputFile();
   if (!sourceOrEmpty) {
     logger.error("Failed to read the input file.");
     return -1;
   }
 
-  std::string source = sourceOrEmpty.value();
-
+  // Lex and parse the source code.
+  const std::string source = sourceOrEmpty.value();
   lexer::Lexer lexer(source);
   nodes::Parser parser(lexer.allTokens());
-  std::unique_ptr<nodes::ProgramNode> ast = parser.parse();
 
-  logger.info("==========START-AST=========");
-  if (utils::logging::getLevel() >= utils::LogLevel::INFO) {
-    visitors::PrettyPrinter printer;
+  // Print the AST if requested.
+  const auto ast = parser.parse();
+  if (args.shouldPrintAst()) {
+    PrettyPrinter printer;
     ast->accept(printer);
+
+    return 0;
   }
-  logger.info("==========END-AST===========");
 
+  // Generate target code.
   llvm::LLVMContext context;
-  auto module = std::make_unique<llvm::Module>("<main>", context);
-  codegen::Codegen codegen(context, std::move(module));
-
-  logger.info("===========START-IR=========");
+  Codegen codegen(context, std::make_unique<llvm::Module>("main", context));
   ast->accept(codegen);
-  if (utils::logging::getLevel() >= utils::LogLevel::INFO)
-    llvm::outs() << codegen.getModule();
-  logger.info("===========END-IR===========");
 
   // Compile the module to native code.
   codegen::Compiler compiler;

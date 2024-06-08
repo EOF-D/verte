@@ -51,6 +51,12 @@ namespace verte::utils {
     }
 
     /**
+     * @brief Check if the AST should be printed.
+     * @return True if the AST should be printed, false otherwise.
+     */
+    [[nodiscard]] bool shouldPrintAst() const { return printAst.getValue(); }
+
+    /**
      * @brief Get the input file.
      * @return The input file.
      */
@@ -112,6 +118,14 @@ namespace verte::utils {
         "o",
         llvm::cl::desc("Output file"),
         llvm::cl::value_desc("filename"),
+        llvm::cl::cat(category)};
+    
+    /**
+     * @brief Print ast option.
+     */
+    llvm::cl::opt<bool> printAst{
+        "print-ast",
+        llvm::cl::desc("Print the AST"),
         llvm::cl::cat(category)};
 
     /**
