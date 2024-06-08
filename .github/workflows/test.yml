@@ -13,4 +13,4 @@ jobs:
     - uses: cachix/install-nix-action@v25
       with:
         github_access_token: ${{ secrets.GITHUB_TOKEN }}
-    - run: nix develop .#excerpt-dev --impure --command excerpt-tests
+    - run: nix develop .#verte-dev --impure --command excerpt-tests
