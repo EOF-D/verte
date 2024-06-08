@@ -1,4 +1,4 @@
-# Excerpt
+# Verte
 
 ## Project Structure
 
