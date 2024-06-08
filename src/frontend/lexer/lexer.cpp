@@ -8,7 +8,7 @@
 
 namespace verte::lexer {
   [[nodiscard]] Token Lexer::nextToken() {
-    char current_char = skipWs();
+    char current_char = skip();
 
     if (current_char == '\0')
       return Token("\0", Token::Type::EOS, {line, column});
@@ -71,11 +71,8 @@ namespace verte::lexer {
   }
 
   char Lexer::skip() noexcept {
-    skipWs(); // Skip whitespace.
-    if (currentChar() == '\0')
-      return '\0';
-
-    return skipComments(); // Skip comments.
+    skipWs();
+    return skipComments();
   }
 
   char Lexer::skipWs() noexcept {
@@ -88,27 +85,33 @@ namespace verte::lexer {
 
   char Lexer::skipComments() noexcept {
     if (currentChar() == '/' && peekChar() == '/') {
-      // Skipping `//`.
-      nextChar();
-      nextChar();
-
-      while (true) {
-        char current = currentChar();
-        if (current == '\0')
-          error("Untermianted comment");
-
-        else if (current == '*' && peekChar() == '/') {
-          // Skipping `*/`.
-          nextChar();
-          nextChar();
-          break;
-        }
-
-        // Skip other characters in the comment.
+      // Single-line comment.
+      while (currentChar() != '\n' && !atEof()) {
         nextChar();
       }
+
+      return skip();
     }
 
+    // Block comment.
+    else if (currentChar() == '/' && peekChar() == '*') {
+      nextChar(); // Skip '/'.
+      nextChar(); // Skip '*'.
+
+      // Skip until the end of the block comment.
+      while (!atEof() && !(currentChar() == '*' && peekChar() == '/'))
+        nextChar();
+
+      if (atEof())
+        error("Unterminated block comment");
+
+      nextChar(); // Skip '*'.
+      nextChar(); // Skip '/'.
+
+      return skip();
+    }
+
+    // Return the next non-comment character.
     return currentChar();
   }
 
