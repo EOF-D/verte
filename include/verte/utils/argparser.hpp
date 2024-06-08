@@ -14,10 +14,11 @@
 #  define VERTE_VERSION "0.1.0"
 #endif // VERTE_VERSION
 
+#include "verte/errors.hpp"
 #include "verte/utils/logger.hpp"
+
 #include "llvm/Support/CommandLine.h"
 
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -74,10 +75,11 @@ namespace verte::utils {
 
       const auto filePath = getInputFile();
       std::ifstream file(filePath, std::ios::binary);
+
       if (!file) {
-        logger.error("Error opening file: {}", filePath.string());
-        std::cerr << "Error opening file: " << filePath << "\n";
-        return std::nullopt;
+        auto error = "Error opening file: " + filePath.string();
+        logger.error(error); // Log the error.
+        throw verte::errors::IOError(error, filePath);
       }
 
       // clang-format off

@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <exception>
+#include <filesystem>
 #include <source_location>
 #include <string>
 
@@ -56,6 +57,24 @@ namespace verte::errors {
   };
 
   /**
+   * @class IOError
+   * @brief IO error for file reading, etc.
+   */
+  class IOError : public VerteError {
+  public:
+    /**
+     * @brief Constructs a new IOError.
+     * @param message The error message.
+     * @param path The path of the file.
+     */
+    IOError(const std::string &message, std::filesystem::path path)
+        : VerteError(message) {}
+
+  private:
+    std::filesystem::path path; /**< The path of the file. */
+  };
+
+  /**
    * @class LexicalError
    * @brief The error for lexical errors.
    */
@@ -99,6 +118,19 @@ namespace verte::errors {
      */
     ParserError(const std::string &message, uint32_t line, uint32_t column)
         : LexicalError(message, line, column) {}
+  };
+
+  /**
+   * @class CodegenError
+   * @brief The error for code generation errors.
+   */
+  class CodegenError : public VerteError {
+  public:
+    /**
+     * @brief Constructs a new CodegenError.
+     * @param message The error message.
+     */
+    CodegenError(const std::string &message) : VerteError(message) {}
   };
 } // namespace verte::errors
 
