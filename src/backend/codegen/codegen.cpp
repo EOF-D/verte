@@ -42,6 +42,8 @@ namespace verte::codegen {
 
       //  TODO: Implement.
       case STRING:
+        return createString(value);
+
       case VOID:
       case UNKNOWN:
         return {};
@@ -103,17 +105,12 @@ namespace verte::codegen {
     if (constants.contains(name))
       error("Cannot assign to a constant: " + name);
 
+    else if (globals.contains(name))
+      error("Cannot assign to a global variable: " + name);
+
     auto value = std::get<llvm::Value *>(node.getValue()->accept(*this));
     if (!value)
       error("Invalid value for assignment: " + name);
-
-    // Checking in global scope.
-    if (globals.contains(name)) {
-      auto globalVar = globals[name];
-      builder->CreateStore(value, globalVar);
-
-      return {};
-    }
 
     // Checking in function scope.
     if (currentFunc != nullptr) {
@@ -302,9 +299,8 @@ namespace verte::codegen {
 
   llvm::Type *Codegen::getType(const TypeInfo &type) const {
     switch (type.dataType) {
-      case TypeInfo::DataType::INTEGER: {
+      case TypeInfo::DataType::INTEGER:
         return builder->getInt32Ty();
-      }
 
       case TypeInfo::DataType::FLOAT:
         return builder->getFloatTy();
@@ -314,6 +310,9 @@ namespace verte::codegen {
 
       case TypeInfo::DataType::BOOL:
         return builder->getInt1Ty();
+
+      case TypeInfo::DataType::STRING:
+        return builder->getInt8PtrTy();
 
       case TypeInfo::DataType::VOID:
         return builder->getVoidTy();
@@ -330,6 +329,16 @@ namespace verte::codegen {
     }
 
     error("Unknown global variable: " + name);
+  }
+
+  llvm::Value *Codegen::createString(const std::string &value) {
+    auto *strConst = llvm::ConstantDataArray::getString(context, value, true);
+
+    llvm::GlobalVariable *str = new llvm::GlobalVariable(
+        *module, strConst->getType(), true, llvm::GlobalValue::PrivateLinkage,
+        strConst, "str");
+
+    return builder->CreatePointerCast(str, llvm::Type::getInt8PtrTy(context));
   }
 
   template <typename... Args>

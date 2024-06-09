@@ -161,6 +161,13 @@ namespace verte::codegen {
     llvm::Value *loadGlobal(const std::string &name);
 
     /**
+     * @brief Create a string.
+     * @param value The string value.
+     * @return The created LLVM value.
+     */
+    llvm::Value *createString(const std::string &value);
+
+    /**
      * @brief Emit an error message and exit.
      * @tparam Args Argument types.
      * @param message The error message.
@@ -176,6 +183,16 @@ namespace verte::codegen {
       // Add true & false to the global table.
       constants["true"] = llvm::ConstantInt::getTrue(context);
       constants["false"] = llvm::ConstantInt::getFalse(context);
+
+      // TODO: Make preloading of functions have a better interface.
+      std::vector<llvm::Type *> printArgs{builder->getInt8PtrTy()};
+      auto printType =
+          llvm::FunctionType::get(builder->getInt32Ty(), printArgs, true);
+
+      auto func = llvm::Function::Create(
+          printType, llvm::Function::ExternalLinkage, "printf", module.get());
+
+      func->setCallingConv(llvm::CallingConv::C);
     }
 
     llvm::LLVMContext &context; /**< LLVM context. */
