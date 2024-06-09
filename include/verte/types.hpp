@@ -85,7 +85,7 @@ namespace verte::types {
         return DataType::FLOAT;
       else if (type == "double")
         return DataType::DOUBLE;
-      else if (type == "string")
+      else if (type == "str")
         return DataType::STRING;
       else if (type == "bool")
         return DataType::BOOL;
@@ -108,7 +108,7 @@ namespace verte::types {
         case DataType::DOUBLE:
           return "double";
         case DataType::STRING:
-          return "string";
+          return "str";
         case DataType::BOOL:
           return "bool";
         case DataType::VOID:

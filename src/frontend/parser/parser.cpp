@@ -29,7 +29,7 @@ namespace verte::nodes {
       return parseVarDecl();
 
     // Check if the current token is a variable assignment.
-    else if (token.is(Token::Type::IDENTIFIER) && next.is(Token::Type::EQUAL))
+    else if (token.is(Token::Type::IDENTIFIER) && next.is(Token::Type::ASSIGN))
       return parseAssign();
 
     // Check if the current token is a block.
@@ -81,7 +81,7 @@ namespace verte::nodes {
     if (!match(Token::Type::IDENTIFIER))
       error("Expected an identifier for variable assignment.");
 
-    if (!match(Token::Type::EQUAL))
+    if (!match(Token::Type::ASSIGN))
       error("Expected an `=` after the identifier.");
 
     auto expr = parseExpr();
