@@ -64,7 +64,7 @@ namespace verte::nodes {
 
     auto type = parseType();
 
-    if (!match(Token::Type::EQUAL))
+    if (!match(Token::Type::ASSIGN))
       error("Expected an `=` after the type.");
 
     auto expr = parseExpr();
