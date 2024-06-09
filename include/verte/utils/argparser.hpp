@@ -63,6 +63,14 @@ namespace verte::utils {
     [[nodiscard]] bool shouldPrintIr() const { return printIr.getValue(); }
 
     /**
+     * @brief Get the log level.
+     * @return The log level.
+     */
+    [[nodiscard]] utils::LogLevel getLogLevel() const {
+      return logLevel.getValue();
+    }
+
+    /**
      * @brief Get the input file.
      * @return The input file.
      */
@@ -142,8 +150,21 @@ namespace verte::utils {
       llvm::cl::desc("Print the generated LLVM IR"),
       llvm::cl::cat(category)};
 
-    // TODO: Add log level option.
-
+    /**
+    * @brief Set the log level flag.
+    */
+    llvm::cl::opt<utils::LogLevel> logLevel{
+      "log-level",
+      llvm::cl::desc("Set the log level"),
+      llvm::cl::init(utils::LogLevel::NONE),
+      llvm::cl::values(
+        clEnumValN(utils::LogLevel::DEBUG, "debug", "Debug log level"),
+        clEnumValN(utils::LogLevel::INFO, "info", "Info log level"),
+        clEnumValN(utils::LogLevel::WARNING, "warning", "Warning log level"),
+        clEnumValN(utils::LogLevel::ERROR, "error", "Error log level")
+      ),
+      llvm::cl::cat(category)};
+    
     /**
      * @brief Category for the options.
      */

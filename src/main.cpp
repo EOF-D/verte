@@ -15,9 +15,9 @@ using namespace verte::codegen;
 using namespace verte::visitors;
 
 int main(int argc, char **argv) {
-  utils::logging::setLevel(utils::LogLevel::DEBUG);
   const utils::Logger logger("main");
   const utils::ArgParser args(argc, argv);
+  utils::logging::setLevel(args.getLogLevel());
 
   const std::string inputFile = args.getInputFile();
   const std::string outputFile =
