@@ -163,7 +163,7 @@ namespace verte::utils {
       // Unpacking code and prefix.
       const auto &[code, prefix] = LEVEL_DATA[static_cast<uint8_t>(level)];
       output << "[" + timestamp + "]";
-      output << std::format("{}[{}:{}]: \033[0m ", code, name, prefix);
+      output << std::format("{}[{}:{}]: \x1B[0m ", code, name, prefix);
       output << std::vformat(message, std::make_format_args(args...));
       output << "\n";
     }
@@ -173,11 +173,11 @@ namespace verte::utils {
      */
     // clang-format off
     static constexpr std::array<LogData, 5> LEVEL_DATA = {{
-        {"\033[0m",        "NONE"},
-        {"\033[0;32m",     "INFO"},
-        {"\033[38;5;214m", "DEBUG"},
-        {"\033[0;33m",     "WARN"},
-        {"\033[0;31m",     "ERROR"}
+        {"\x1B[0m",        "NONE"},
+        {"\x1B[0;32m",     "INFO"},
+        {"\x1B[38;5;214m", "DEBUG"},
+        {"\x1B[0;33m",     "WARN"},
+        {"\x1B[0;31m",     "ERROR"}
     }};
     // clang-format on
 
