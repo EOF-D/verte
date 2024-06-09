@@ -15,6 +15,7 @@ using namespace verte::codegen;
 using namespace verte::visitors;
 
 int main(int argc, char **argv) {
+  utils::logging::setLevel(utils::LogLevel::DEBUG);
   const utils::Logger logger("main");
   const utils::ArgParser args(argc, argv);
 
@@ -47,6 +48,12 @@ int main(int argc, char **argv) {
   llvm::LLVMContext context;
   Codegen codegen(context, std::make_unique<llvm::Module>("main", context));
   ast->accept(codegen);
+
+  // Print the LLVM IR if requested.
+  if (args.shouldPrintIr()) {
+    codegen.getModule().print(llvm::outs(), nullptr);
+    return 0;
+  }
 
   // Compile the module to native code.
   codegen::Compiler compiler;

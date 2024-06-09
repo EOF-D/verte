@@ -57,6 +57,12 @@ namespace verte::utils {
     [[nodiscard]] bool shouldPrintAst() const { return printAst.getValue(); }
 
     /**
+     * @brief Check if the generated LLVM IR should be printed.
+     * @return True if the generated LLVM IR should be printed, false otherwise.
+     */
+    [[nodiscard]] bool shouldPrintIr() const { return printIr.getValue(); }
+
+    /**
      * @brief Get the input file.
      * @return The input file.
      */
@@ -127,6 +133,16 @@ namespace verte::utils {
         "print-ast",
         llvm::cl::desc("Print the AST"),
         llvm::cl::cat(category)};
+
+    /**
+     * @brief Print generated llvm IR.
+     */
+    llvm::cl::opt<bool> printIr{
+      "print-ir",
+      llvm::cl::desc("Print the generated LLVM IR"),
+      llvm::cl::cat(category)};
+
+    // TODO: Add log level option.
 
     /**
      * @brief Category for the options.
