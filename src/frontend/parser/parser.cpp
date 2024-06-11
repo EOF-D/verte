@@ -35,7 +35,6 @@ namespace verte::nodes {
 
     // Check if the current token is an if statement/else statement.
     else if (token.is(Token::Type::IF)) {
-      logger.debug("Parsing if statement.");
       auto ifNode = parseIf();
 
       // Check if there's an else statement.
