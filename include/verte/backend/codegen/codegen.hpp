@@ -99,6 +99,18 @@ namespace verte::codegen {
     auto visit(const VariableNode &node) -> RetT override;
 
     /**
+     * @brief Visit a IfNode.
+     * @param node The IfNode to visit.
+     */
+    auto visit(const IfNode &node) -> RetT override;
+
+    /**
+     * @brief Visit a IfElseNode.
+     * @param node The IfElseNode to visit.
+     */
+    auto visit(const IfElseNode &node) -> RetT override;
+
+    /**
      * @brief Visit a BinaryNode.
      * @param node The BinaryNode to visit.
      * @return The generated LLVM value.

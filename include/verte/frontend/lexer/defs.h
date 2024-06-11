@@ -62,6 +62,7 @@ namespace verte::defs {
   _(PLUS, "+")       /**< Plus operator token. */                              \
   _(STAR, "*")       /**< Multiplication operator token. */                    \
   _(SLASH, "/")      /**< Division operator token. */                          \
+  _(MOD, "%")        /**< Modulus operator token. */                           \
   _(LESS, "<")       /**< Less than operator token. */                         \
   _(GREATER, ">")    /**< Greater than operator token. */                      \
   _(LT_EQUAL, "<=")  /**< Less than or equal to operator token. */             \

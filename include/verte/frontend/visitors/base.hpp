@@ -56,6 +56,20 @@ namespace verte::visitors {
     virtual auto visit(const AssignNode &node) -> RetT = 0;
 
     /**
+     * @brief Visit an if node.
+     * @param node The if node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const IfNode &node) -> RetT = 0;
+
+    /**
+     * @brief Visit an if-else node.
+     * @param node The if-else node to visit.
+     * @return The return value of the visit.
+     */
+    virtual auto visit(const IfElseNode &node) -> RetT = 0;
+
+    /**
      * @brief Visit a variable node.
      * @param node The variable node to visit.
      * @return The return value of the visit.

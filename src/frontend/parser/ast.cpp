@@ -29,6 +29,14 @@ namespace verte::nodes {
     return visitor.visit(*this);
   }
 
+  auto IfNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
+  }
+
+  auto IfElseNode::accept(ASTVisitor &visitor) const -> RetT {
+    return visitor.visit(*this);
+  }
+
   auto BinaryNode::accept(ASTVisitor &visitor) const -> RetT {
     return visitor.visit(*this);
   }

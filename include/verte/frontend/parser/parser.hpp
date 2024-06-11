@@ -77,6 +77,18 @@ namespace verte::nodes {
     [[nodiscard]] NodePtr parseAssign();
 
     /**
+     * @brief Parse an if statement.
+     * @return The parsed if statement.
+     */
+    [[nodiscard]] IfNodePtr parseIf();
+
+    /**
+     * @brief Parse an if-else statement.
+     * @return The parsed if-else statement.
+     */
+    [[nodiscard]] NodePtr parseIfElse(IfNodePtr ifStmt);
+
+    /**
      * @brief Parse a function declaration statement.
      */
     [[nodiscard]] NodePtr parseFuncDecl();

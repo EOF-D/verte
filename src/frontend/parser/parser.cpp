@@ -5,6 +5,7 @@
 
 #include "verte/frontend/parser/parser.hpp"
 #include "verte/errors.hpp"
+#include <memory>
 
 namespace verte::nodes {
   [[nodiscard]] std::unique_ptr<ProgramNode> Parser::parse() {
@@ -31,6 +32,18 @@ namespace verte::nodes {
     // Check if the current token is a variable assignment.
     else if (token.is(Token::Type::IDENTIFIER) && next.is(Token::Type::ASSIGN))
       return parseAssign();
+
+    // Check if the current token is an if statement/else statement.
+    else if (token.is(Token::Type::IF)) {
+      logger.debug("Parsing if statement.");
+      auto ifNode = parseIf();
+
+      // Check if there's an else statement.
+      if (currentToken().is(Token::Type::ELSE))
+        return parseIfElse(std::move(ifNode));
+
+      return ifNode;
+    }
 
     // Check if the current token is a block.
     else if (token.is(Token::Type::LBRACE))
@@ -89,6 +102,34 @@ namespace verte::nodes {
       error("Expected a `;` after the expression.");
 
     return create<AssignNode>(ident.getValue(), std::move(expr));
+  }
+
+  [[nodiscard]] IfNodePtr Parser::parseIf() {
+    // IF_STMT -> IF '[' EXPR ']' THEN '{' STMT* '}'
+    if (!match(Token::Type::IF))
+      error("Expected an `if` for the if statement.");
+
+    if (!match(Token::Type::LBRACKET))
+      error("Expected a `[` after the `if` keyword.");
+
+    auto condition = parseExpr();
+    if (!match(Token::Type::RBRACKET))
+      error("Expected a `]` after the condition.");
+
+    if (!match(Token::Type::THEN))
+      error("Expected a `then` after the condition.");
+
+    auto then = parseBlock();
+    return std::make_unique<IfNode>(std::move(condition), std::move(then));
+  }
+
+  [[nodiscard]] NodePtr Parser::parseIfElse(IfNodePtr ifStmt) {
+    // IF_ELSE_STMT -> IF_STMT ELSE '{' STMT* '}'
+    if (!match(Token::Type::ELSE))
+      error("Expected an `else` after the if statement.");
+
+    auto elseStmt = parseBlock();
+    return create<IfElseNode>(std::move(ifStmt), std::move(elseStmt));
   }
 
   [[nodiscard]] NodePtr Parser::parseFuncDecl() {

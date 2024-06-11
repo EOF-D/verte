@@ -28,6 +28,7 @@ namespace verte::nodes {
   class ProtoNode;
   class BlockNode;
   class VariableNode;
+  class IfNode;
 
   /**
    * @typedef NodePtr
@@ -52,6 +53,12 @@ namespace verte::nodes {
    * @brief Unique pointer to a variable node.
    */
   using VariablePtr = std::unique_ptr<VariableNode>;
+
+  /**
+   * @typedef ifNodePtr
+   * @brief Unique pointer to an if node.
+   */
+  using IfNodePtr = std::unique_ptr<IfNode>;
 } // namespace verte::nodes
 
 /**
@@ -270,6 +277,83 @@ namespace verte::nodes {
 
   private:
     std::string name; /**< Name of the variable. */
+  };
+
+  /**
+   * @class IfNode
+   * @brief If statement node.
+   */
+  class IfNode : public ASTNode {
+  public:
+    /**
+     * @brief Construct a new IfNode.
+     * @param cond Condition of the if statement.
+     * @param body Body of the if statement.
+     * @param elseBody Else body of the if statement.
+     */
+    IfNode(NodePtr cond, BlockPtr body) noexcept
+        : cond(std::move(cond)), block(std::move(body)) {}
+
+    /**
+     * @brief Get the condition of the if statement.
+     * @return The condition of the if statement.
+     */
+    const NodePtr &getCond() const { return cond; }
+
+    /**
+     * @brief Get the body of the if statement.
+     * @return The body of the if statement.
+     */
+    const BlockPtr &getBlock() const { return block; }
+
+    /**
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
+     */
+    auto accept(ASTVisitor &visitor) const -> RetT override;
+
+  private:
+    NodePtr cond;   /**< Condition of the if statement. */
+    BlockPtr block; /**< Then block of the if statement. */
+  };
+
+  /**
+   * @class IfElseNode
+   * @brief If-else statement node.
+   */
+  class IfElseNode : public ASTNode {
+  public:
+    /**
+     * @brief Construct a new IfElseNode.
+     * @param ifNode If statement node.
+     * @param elseBlock Else block node.
+     */
+    IfElseNode(IfNodePtr ifNode, BlockPtr elseBlock) noexcept
+        : ifNode(std::move(ifNode)), elseBlock(std::move(elseBlock)) {}
+
+    /**
+     * @brief Get the if statement of the if-else statement.
+     * @return The if statement of the if-else statement.
+     */
+    const IfNodePtr &getIfNode() const { return ifNode; }
+
+    /**
+     * @brief Get the else block of the if-else statement.
+     * @return The else block of the if-else statement.
+     */
+    const BlockPtr &getElseBlock() const { return elseBlock; }
+
+    /**
+     * @brief Accept a visitor for the node.
+     * @param visitor Visitor to accept.
+     * @return The return value of the visitor.
+     */
+    auto accept(ASTVisitor &visitor) const -> RetT override;
+
+  private:
+    IfNodePtr ifNode;   /**< If statement of the if-else statement. */
+    BlockPtr elseBlock; /**< Else block of the if-else statement. */
   };
 
   /**

@@ -76,6 +76,18 @@ namespace verte::visitors {
     auto visit(const VariableNode &node) -> RetT override;
 
     /**
+     * @brioef Visit a IfNode node.
+     * @param node The IfNode node to visit.
+     */
+    auto visit(const IfNode &node) -> RetT override;
+
+    /**
+     * @brief Visit a IfElseNode node.
+     * @param node The IfElseNode node to visit.
+     */
+    auto visit(const IfElseNode &node) -> RetT override;
+
+    /**
      * @brief Visit a BinaryNode node.
      * @param node The BinaryNode node to visit.
      */

@@ -154,6 +154,72 @@ namespace verte::codegen {
     error("Unknown variable referenced: " + name);
   }
 
+  auto Codegen::visit(const IfNode &node) -> RetT {
+    if (currentFunc == nullptr)
+      error("If statement must be inside a function.");
+
+    // Create basic blocks for the condition, then, else, and merge
+    auto current = currentFunc->llvmFunc;
+
+    llvm::BasicBlock *cond = llvm::BasicBlock::Create(context, "cond", current);
+    llvm::BasicBlock *then = llvm::BasicBlock::Create(context, "then", current);
+
+    llvm::BasicBlock *merge =
+        llvm::BasicBlock::Create(context, "merge", current);
+
+    // Create the conditional branch.
+    builder->CreateBr(cond);
+    builder->SetInsertPoint(cond);
+    llvm::Value *condValue =
+        std::get<llvm::Value *>(node.getCond()->accept(*this));
+    builder->CreateCondBr(condValue, then, merge);
+
+    // Create the body of the if-statement.
+    builder->SetInsertPoint(then);
+    node.getBlock()->accept(*this);
+    builder->CreateBr(merge);
+
+    builder->SetInsertPoint(merge);
+    return {};
+  }
+
+  auto Codegen::visit(const IfElseNode &node) -> RetT {
+    if (currentFunc == nullptr)
+      error("If-else statement must be inside a function.");
+
+    // Create basic blocks for the condition, then, else, and merge
+    auto current = currentFunc->llvmFunc;
+
+    llvm::BasicBlock *cond = llvm::BasicBlock::Create(context, "cond", current);
+    llvm::BasicBlock *then = llvm::BasicBlock::Create(context, "then", current);
+
+    llvm::BasicBlock *else_ =
+        llvm::BasicBlock::Create(context, "else", current);
+
+    llvm::BasicBlock *merge =
+        llvm::BasicBlock::Create(context, "merge", current);
+
+    // Create the conditional branch.
+    builder->CreateBr(cond);
+    builder->SetInsertPoint(cond);
+    llvm::Value *condValue =
+        std::get<llvm::Value *>(node.getIfNode()->getCond()->accept(*this));
+    builder->CreateCondBr(condValue, then, else_);
+
+    // Create the body of the if-statement.
+    builder->SetInsertPoint(then);
+    node.getIfNode()->getBlock()->accept(*this);
+    builder->CreateBr(merge);
+
+    // Create the body of the else-statement.
+    builder->SetInsertPoint(else_);
+    node.getElseBlock()->accept(*this);
+    builder->CreateBr(merge);
+
+    builder->SetInsertPoint(merge);
+    return {};
+  }
+
   auto Codegen::visit(const BinaryNode &node) -> RetT {
     auto lhs = std::get<llvm::Value *>(node.getLHS()->accept(*this));
     auto rhs = std::get<llvm::Value *>(node.getRHS()->accept(*this));
@@ -174,6 +240,7 @@ namespace verte::codegen {
     else if (op == "-") return builder->CreateSub(lhs, rhs, "subtmp");
     else if (op == "*") return builder->CreateMul(lhs, rhs, "multmp");
     else if (op == "/") return builder->CreateFDiv(lhs, rhs, "divtmp");
+    else if (op == "%") return builder->CreateSRem(lhs, rhs, "modtmp");
     else if (op == "<") return builder->CreateICmpULT(lhs, rhs, "cmptmp");
     else if (op == ">") return builder->CreateICmpUGT(lhs, rhs, "cmptmp");
     else if (op == "==") return builder->CreateICmpEQ(lhs, rhs, "cmptmp");

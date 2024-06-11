@@ -149,10 +149,11 @@ namespace verte::tokens {
    */
   inline static constexpr std::initializer_list<Token::Type>
       BINARY_OPERATOR_TYPES = {
-          Token::Type::PLUS,     Token::Type::MINUS,   Token::Type::STAR,
-          Token::Type::SLASH,    Token::Type::EQUAL,   Token::Type::NEQ_EQUAL,
-          Token::Type::LESS,     Token::Type::GREATER, Token::Type::LT_EQUAL,
-          Token::Type::GT_EQUAL, Token::Type::OR,      Token::Type::AND};
+          Token::Type::PLUS,      Token::Type::MINUS,    Token::Type::STAR,
+          Token::Type::SLASH,     Token::Type::MOD,      Token::Type::EQUAL,
+          Token::Type::NEQ_EQUAL, Token::Type::LESS,     Token::Type::GREATER,
+          Token::Type::LT_EQUAL,  Token::Type::GT_EQUAL, Token::Type::OR,
+          Token::Type::AND};
 
   /**
    * @brief All the unary operator types.
@@ -171,7 +172,8 @@ namespace verte::tokens {
       {Token::Type::GREATER, 3},   {Token::Type::LT_EQUAL, 3},
       {Token::Type::GT_EQUAL, 3},  {Token::Type::PLUS, 4},
       {Token::Type::MINUS, 4},     {Token::Type::STAR, 5},
-      {Token::Type::SLASH, 5},     {Token::Type::BANG, 6}};
+      {Token::Type::SLASH, 5},     {Token::Type::MOD, 5},
+      {Token::Type::BANG, 6}};
 } // namespace verte::tokens
 
 #endif // VERTE_FRONTEND_LEXER_TOKENS_H
