@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.16.3)
 project(vertec)
 
+# Set the install prefix
+if(DEFINED ENV{DEVENV_PROFILE})
+    set(DEFAULT_INSTALL_PREFIX "$ENV{DEVENV_PROFILE}")
+    message(STATUS "A devenv environment was detected.")
+elseif(DEFINED ENV{HOME})
+    set(DEFAULT_INSTALL_PREFIX "$ENV{HOME}/.local")
+    message(STATUS "A Non-devenv environment was detected.")
+else()
+    set(DEFAULT_INSTALL_PREFIX "/usr/local")
+    message(STATUS "Falling back to /usr/local for installation prefix.")
+endif()
+
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${DEFAULT_INSTALL_PREFIX}" CACHE PATH "Installation prefix" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,3 +54,10 @@ endif()
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 target_link_libraries(${PROJECT_NAME} VerteLib)
+
+if (INSTALL_VERTE)
+    install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+    install(TARGETS VerteLib DESTINATION lib)
+    install(FILES ${HEADERS} DESTINATION include)
+    message(STATUS "Verte will be installed to: ${CMAKE_INSTALL_PREFIX}")
+endif()
