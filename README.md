@@ -45,3 +45,11 @@ Testing:
 ```sh
 verte-tests
 ```
+
+## Installing
+
+To install use the nix flake.
+
+```sh
+nix build
+```
