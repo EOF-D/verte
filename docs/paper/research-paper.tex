@@ -1,0 +1,307 @@
+\documentclass[11pt]{article}
+
+% Packages.
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{float}
+
+% Metadata.
+\hypersetup{
+    pdftitle={CSI370: Verte Compiler - Assembly Refactor},
+    pdfauthor={Andy Zheng},
+    pdfsubject={Computer Architecture Software Project},
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+    pdfborder={0 0 0}
+}
+
+% Custom commands.
+\newcommand{\coursecode}{CSI370}
+\newcommand{\coursetitle}{Computer Architecture}
+\newcommand{\assignmenttitle}{Software Project: Verte Compiler - Assembly Refactor}
+\newcommand{\authorname}{Andy Zheng}
+\newcommand{\authoremail}{andy.zheng@mymail.champlain.edu}
+\newcommand{\institution}{Champlain College}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\file}[1]{\texttt{#1}}
+\newcommand{\func}[1]{\texttt{#1()}}
+\newcommand{\var}[1]{\textit{#1}}
+\newcommand{\constant}[1]{\texttt{#1}}
+
+\newcommand{\verte}{\texttt{Verte}}
+\newcommand{\llvm}{\texttt{LLVM}}
+\newcommand{\asm}{\texttt{x86-64 Assembly}}
+
+\newcommand{\figref}[1]{Figure~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+\newcommand{\secref}[1]{Section~\ref{#1}}
+\newcommand{\eqnref}[1]{Equation~\ref{#1}}
+\newcommand{\lstref}[1]{Listing~\ref{#1}}
+\providecommand{\algref}[1]{Algorithm~\ref{#1}}
+
+% Code listing style.
+\lstdefinestyle{codestyle}{
+    backgroundcolor=\color{gray!10},
+    commentstyle=\color{green!50!black},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{gray},
+    stringstyle=\color{red!70!black},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{black!30}
+}
+
+\lstset{style=codestyle}
+
+% Header/footer configuration.
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\fancyhead[L]{\small \coursecode\ -- \assignmenttitle}
+\fancyhead[R]{\small \authorname}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Title page style.
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+% Custom styling.
+\setlist[itemize]{label=$\diamond$, leftmargin=*}
+\setlist[enumerate]{leftmargin=*}
+
+% Adjust spacing.
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+
+% Document start.
+\begin{document}
+
+% Title page.
+\title{\coursecode\ \coursetitle \\ \vspace{0.5em} \Large \assignmenttitle}
+
+\author{
+	\authorname \\
+	\small \institution \\
+	\small \texttt{\authoremail}
+	\date{\today}
+}
+
+\maketitle
+\thispagestyle{plain}
+\newpage
+
+% =========================================================================
+% START OF RESEARCH 1 OVERVIEW
+% =========================================================================
+% This section provides a high-level overview of the project.
+% Covers: what, why, how, and challenges (on a macro scale of the project).
+% =========================================================================
+
+\section{Project Overview}
+\label{sec:overview}
+
+% What: Project Description.
+\subsection{What: Project Description}
+\label{subsec:what}
+
+This project will involve refactoring the code generation backend of the \verte\ compiler.
+\verte\ is an existing compiler project written in C++ that currently uses \llvm\ for code generation.
+The objective of this project is to replace the \llvm\ backend with a custom, hand-written \asm\ code generator.
+This new backend will directly translate the \code{AST} produced by the \verte\ frontend into \asm\ instructions.
+
+% Verte architecture diagram.
+\begin{figure}[h]
+	\centering
+	\small
+	\setlength{\fboxsep}{6pt}
+	\setlength{\fboxrule}{0.5pt}
+
+	% Frontend.
+	\textit{Verte Frontend}\\[0.4em]
+	\fbox{\parbox{2cm}{\centering Source Code}}
+	$\rightarrow$
+	\fbox{\parbox{2cm}{\centering Lexer}}
+	$\rightarrow$
+	\fbox{\parbox{2cm}{\centering Parser}}
+	$\rightarrow$
+	\fbox{\parbox{2cm}{\centering AST}}
+	\vspace{1.2em}
+
+	% Current backend.
+	\textit{Current Backend}\\[0.4em]
+	\fbox{\parbox{2cm}{\centering LLVM IR Generator}}
+	$\rightarrow$
+	\fbox{\parbox{2cm}{\centering LLVM Optimization}}
+	$\rightarrow$
+	\fbox{\parbox{2.2cm}{\centering LLVM Backend}}
+	\vspace{1.5em}
+
+	% Proposed backend.
+	\textit{Proposed Backend}\\[0.4em]
+	\fbox{\parbox{2cm}{\centering Assembly Generator}}
+	$\rightarrow$
+	\fbox{\parbox{2cm}{\centering Register Allocation}}
+	$\rightarrow$
+	\fbox{\parbox{2.2cm}{\centering x86-64 Assembly}}
+	\vspace{1.2em}
+
+	\caption{High-level view of the Verte Compiler architecture, showing existing and proposed backends.}
+	\label{fig:architecture}
+\end{figure}
+
+% Why: Motivation.
+\subsection{Why: Motivation}
+\label{subsec:why}
+
+The motivation behind this project is for both educational and technical reasons.
+I believe that building a custom assembly backend will provide invaluable insights into low-level code generation, and compilation.
+And, specifically in the context of this class, I will also aim to deepen my understanding of \asm\ instructions, calling conventions, and register/instruction selection.
+As for the technical reasons, I feel it would be a good idea to explore alternatives to \llvm\ due to it's complexity and steep learning curve.
+Thus, overall a custom backend will allow for more understanding and control over the generated code.
+
+% How: Approach and Methodology.
+\subsection{How: Approach and Methodology}
+\label{subsec:how}
+
+The implementation of this refactor will be carried out in several phases over the rest of this course.
+It will start with an analysis of the existing \llvm\ backend integration to understand best how to replace it.
+Following that, designing the architecture for the assembly generation will be done.
+Whilst development is ongoing, test cases will be created to validate correctness, once assembly generation is functional and correctness is ensured, the refactorization is complete.
+
+\begin{table}[H]
+	\centering
+	\label{tab:files}
+	\begin{tabular}{@{}lll@{}}
+		\toprule
+		\textbf{File}                      & \textbf{Purpose}    & \textbf{Implementation}        \\ \midrule
+		\file{asm\_visitor.h/cpp}          & AST traversal       & Visitor pattern for AST nodes  \\
+		\file{instruction\_selector.h/cpp} & Instruction mapping & x86-64 instruction selection   \\
+		\file{register\_allocator.h/cpp}   & Register management & Physical register allocation   \\
+		\file{asm\_emitter.h/cpp}          & Code emission       & NASM assembly text generation  \\
+		\file{calling\_convention.h/cpp}   & ABI compliance      & System V calling convention    \\
+		\file{backend.h/cpp}               & Integration         & Replace LLVM backend interface \\ \bottomrule
+	\end{tabular}
+	\caption{Key source files and their roles in the assembly backend implementation}
+\end{table}
+
+% Challenges: Anticipated Difficulties.
+\subsection{Challenges: Anticipated Difficulties}
+\label{subsec:challenges}
+
+The project presents several technical and integration challenges that will need to be addressed.
+Specifically, managing register allocation and stack frames in \asm\ can be complex.
+Proper handling of function calls and adhering to calling conventions will also be critical to ensure generated code correctness.
+Thus careful planning and testing will be essential to overcome these challenges.
+
+\subsubsection{Solutions}
+\label{subsubsec:solutions}
+
+To mitigate the anticipated challenges, I plan to take a systematic approach.
+This includes thorough research into \asm\ programming and calling conventions.
+Additionally, I will implement the backend incrementally, starting with simple features and gradually adding complexity.
+Testing will be conducted at each stage to ensure correctness and to catch issues early.
+Finally, I will leverage existing resources and tools, such as assemblers and debuggers, to aid in development and troubleshooting.
+
+\begin{figure}[H]
+	\centering
+	\small
+	\setlength{\fboxsep}{6pt}
+	\setlength{\fboxrule}{0.6pt}
+
+	\begin{tabular}{ccccc}
+
+		% Step 1.
+		\fbox{\parbox{2cm}{\centering
+		\textbf{Step 1}                         \\[0.2em]
+		\textbf{Traverse}                       \\[0.2em]
+				\scriptsize Visit AST nodes
+		}}                   &
+		\Large $\rightarrow$ &
+
+		% Step 2.
+		\fbox{\parbox{2cm}{\centering
+		\textbf{Step 2}                         \\[0.2em]
+		\textbf{Select}                         \\[0.2em]
+				\scriptsize Map to x86-64
+		}}                   &
+		\Large $\rightarrow$ &
+
+		% Step 3.
+		\fbox{\parbox{2cm}{\centering
+		\textbf{Step 3}                         \\[0.2em]
+		\textbf{Allocate}                       \\[0.2em]
+				\scriptsize Assign registers
+		}}                                      \\[0.8em]
+
+		\multicolumn{5}{c}{\Large $\downarrow$} \\[0.3em]
+
+		\multicolumn{5}{c}{
+			\fbox{\parbox{3.5cm}{\centering
+		\textbf{System V Calling Convention}    \\[0.1em]
+					\scriptsize Parameter passing \& ABI compliance
+				}}
+		}                                       \\[0.8em]
+
+		\multicolumn{5}{c}{\Large $\downarrow$} \\[0.3em]
+
+		\multicolumn{5}{c}{
+			% Step 4.
+			\fbox{\parbox{2.5cm}{\centering
+		\textbf{Step 4}                         \\[0.2em]
+		\textbf{Emit}                           \\[0.2em]
+					\scriptsize Generate assembly text
+				}}
+		}                                       \\[0.8em]
+
+		\multicolumn{5}{c}{\Large $\downarrow$} \\[0.2em]
+
+		\multicolumn{5}{c}{\scriptsize\textit{x86-64 Assembly Output}}
+	\end{tabular}
+
+	\vspace{0.8em}
+
+	\caption{Incremental workflow from transforming AST into x86-64 Assembly code with System V ABI compliance.}
+	\label{fig:process-flow}
+\end{figure}
+
+% ==============================================================
+% END OF RESEARCH 1 OVERVIEW
+% ==============================================================
+% The sections below will be expanded in subsequent submissions.
+% ==============================================================
+
+\newpage
+\end{document}
