@@ -11,6 +11,7 @@
 \usepackage{enumitem}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{setspace}
 
 \usepackage{listings}
 \usepackage{xcolor}
@@ -48,6 +49,7 @@
 \newcommand{\constant}[1]{\texttt{#1}}
 
 \newcommand{\verte}{\texttt{Verte}}
+\newcommand{\vertec}{\texttt{vertec}}
 \newcommand{\llvm}{\texttt{LLVM}}
 \newcommand{\asm}{\texttt{x86-64 Assembly}}
 
@@ -105,6 +107,7 @@
 % Adjust spacing.
 \setlength{\parskip}{0.5em}
 \setlength{\parindent}{0pt}
+\setstretch{1.2}
 
 % Document start.
 \begin{document}
@@ -121,7 +124,6 @@
 
 \maketitle
 \thispagestyle{plain}
-\newpage
 
 % =========================================================================
 % START OF RESEARCH 1 OVERVIEW
@@ -137,10 +139,10 @@
 \subsection{What: Project Description}
 \label{subsec:what}
 
-This project will involve refactoring the code generation backend of the \verte\ compiler.
-\verte\ is an existing compiler project written in C++ that currently uses \llvm\ for code generation.
-The objective of this project is to replace the \llvm\ backend with a custom, hand-written \asm\ code generator.
-This new backend will directly translate the \code{AST} produced by the \verte\ frontend into \asm\ instructions.
+This project aims to refactor the existing code generation backend of the \vertec\ compiler.
+\vertec\ is a compiler built for the \verte\ programming language, currently \verte\ utilizes \llvm\ for machine code generation.
+With the proposed project, the \llvm\ backend will be replaced with a custom, hand-written \asm\ code generator.
+This new backend will directly translate the \code{AST} (abstract syntax tree) created by the \verte\ frontend into \asm\ instructions.
 
 % Verte architecture diagram.
 \begin{figure}[h]
@@ -178,7 +180,7 @@ This new backend will directly translate the \code{AST} produced by the \verte\ 
 	\fbox{\parbox{2.2cm}{\centering x86-64 Assembly}}
 	\vspace{1.2em}
 
-	\caption{High-level view of the Verte Compiler architecture, showing existing and proposed backends.}
+	\caption{Verte Compiler architecture, showing existing and proposed backends.}
 	\label{fig:architecture}
 \end{figure}
 
@@ -188,9 +190,9 @@ This new backend will directly translate the \code{AST} produced by the \verte\ 
 
 The motivation behind this project is for both educational and technical reasons.
 I believe that building a custom assembly backend will provide invaluable insights into low-level code generation, and compilation.
-And, specifically in the context of this class, I will also aim to deepen my understanding of \asm\ instructions, calling conventions, and register/instruction selection.
-As for the technical reasons, I feel it would be a good idea to explore alternatives to \llvm\ due to it's complexity and steep learning curve.
-Thus, overall a custom backend will allow for more understanding and control over the generated code.
+And, specifically in the context of this class, doing this project will deepen my understanding of \asm\ instructions, calling conventions, and register/instruction selection.
+Besides the educational reasons, I also feel it would be a good idea to explore alternatives to \llvm\ due to it's complexity and steep learning curve.
+Building a custom backend will thus, allow for a more tailored and simplified code generation process that is easier to understand and maintain.
 
 % How: Approach and Methodology.
 \subsection{How: Approach and Methodology}
@@ -201,20 +203,25 @@ It will start with an analysis of the existing \llvm\ backend integration to und
 Following that, designing the architecture for the assembly generation will be done.
 Whilst development is ongoing, test cases will be created to validate correctness, once assembly generation is functional and correctness is ensured, the refactorization is complete.
 
+% Source files table.
 \begin{table}[H]
 	\centering
+	\small
+	\caption{Key source files and their roles in the assembly backend implementation}
 	\label{tab:files}
 	\begin{tabular}{@{}lll@{}}
 		\toprule
-		\textbf{File}                      & \textbf{Purpose}    & \textbf{Implementation}        \\ \midrule
-		\file{asm\_visitor.h/cpp}          & AST traversal       & Visitor pattern for AST nodes  \\
-		\file{instruction\_selector.h/cpp} & Instruction mapping & x86-64 instruction selection   \\
-		\file{register\_allocator.h/cpp}   & Register management & Physical register allocation   \\
-		\file{asm\_emitter.h/cpp}          & Code emission       & NASM assembly text generation  \\
-		\file{calling\_convention.h/cpp}   & ABI compliance      & System V calling convention    \\
-		\file{backend.h/cpp}               & Integration         & Replace LLVM backend interface \\ \bottomrule
+		\textbf{File}                                      & \textbf{Purpose}         & \textbf{Implementation}           \\ \midrule
+		\file{visitors/asm\_visitor.[hpp/cpp]}             & AST traversal            & Visitor pattern for nodes         \\
+		\file{codegen/instruction\_selector.[hpp/cpp]}     & Instruction mapping      & x86-64 instruction selection      \\
+		\file{codegen/register\_allocator.[hpp/cpp]}       & Register management      & Physical register allocation      \\
+		\file{codegen/asm\_emitter.[hpp/cpp]}              & Code emission            & NASM assembly text generation     \\
+		\file{codegen/calling\_convention.[hpp/cpp]}       & ABI compliance           & System V calling convention       \\
+		\file{codegen/compiler.[hpp/cpp]*}                 & Integration              & Modify to use assembly backend    \\ \bottomrule
 	\end{tabular}
-	\caption{Key source files and their roles in the assembly backend implementation}
+	\vspace{0.2em}
+	
+	\scriptsize{*Indicates modification of existing file; all others are new files.}
 \end{table}
 
 % Challenges: Anticipated Difficulties.
@@ -226,6 +233,7 @@ Specifically, managing register allocation and stack frames in \asm\ can be comp
 Proper handling of function calls and adhering to calling conventions will also be critical to ensure generated code correctness.
 Thus careful planning and testing will be essential to overcome these challenges.
 
+% Challenges: Solutions.
 \subsubsection{Solutions}
 \label{subsubsec:solutions}
 
@@ -235,6 +243,7 @@ Additionally, I will implement the backend incrementally, starting with simple f
 Testing will be conducted at each stage to ensure correctness and to catch issues early.
 Finally, I will leverage existing resources and tools, such as assemblers and debuggers, to aid in development and troubleshooting.
 
+% Process flow diagram.
 \begin{figure}[H]
 	\centering
 	\small
@@ -242,8 +251,6 @@ Finally, I will leverage existing resources and tools, such as assemblers and de
 	\setlength{\fboxrule}{0.6pt}
 
 	\begin{tabular}{ccccc}
-
-		% Step 1.
 		\fbox{\parbox{2cm}{\centering
 		\textbf{Step 1}                         \\[0.2em]
 		\textbf{Traverse}                       \\[0.2em]
@@ -251,7 +258,6 @@ Finally, I will leverage existing resources and tools, such as assemblers and de
 		}}                   &
 		\Large $\rightarrow$ &
 
-		% Step 2.
 		\fbox{\parbox{2cm}{\centering
 		\textbf{Step 2}                         \\[0.2em]
 		\textbf{Select}                         \\[0.2em]
@@ -259,7 +265,6 @@ Finally, I will leverage existing resources and tools, such as assemblers and de
 		}}                   &
 		\Large $\rightarrow$ &
 
-		% Step 3.
 		\fbox{\parbox{2cm}{\centering
 		\textbf{Step 3}                         \\[0.2em]
 		\textbf{Allocate}                       \\[0.2em]
@@ -269,7 +274,7 @@ Finally, I will leverage existing resources and tools, such as assemblers and de
 		\multicolumn{5}{c}{\Large $\downarrow$} \\[0.3em]
 
 		\multicolumn{5}{c}{
-			\fbox{\parbox{3.5cm}{\centering
+		\fbox{\parbox{3.5cm}{\centering
 		\textbf{System V Calling Convention}    \\[0.1em]
 					\scriptsize Parameter passing \& ABI compliance
 				}}
@@ -278,8 +283,7 @@ Finally, I will leverage existing resources and tools, such as assemblers and de
 		\multicolumn{5}{c}{\Large $\downarrow$} \\[0.3em]
 
 		\multicolumn{5}{c}{
-			% Step 4.
-			\fbox{\parbox{2.5cm}{\centering
+		\fbox{\parbox{2.5cm}{\centering
 		\textbf{Step 4}                         \\[0.2em]
 		\textbf{Emit}                           \\[0.2em]
 					\scriptsize Generate assembly text
