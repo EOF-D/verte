@@ -7,17 +7,15 @@
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{times}
-\usepackage{microtype}
+\usepackage[final,nopatch=footnote]{microtype}
 \usepackage{enumitem}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{setspace}
-
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
-
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{float}
@@ -109,7 +107,6 @@
 \setlength{\parindent}{0pt}
 \setstretch{1.2}
 
-% Document start.
 \begin{document}
 
 % Title page.
@@ -125,13 +122,7 @@
 \maketitle
 \thispagestyle{plain}
 
-% =========================================================================
-% START OF RESEARCH 1 OVERVIEW
-% =========================================================================
-% This section provides a high-level overview of the project.
-% Covers: what, why, how, and challenges (on a macro scale of the project).
-% =========================================================================
-
+% Start of research assignment.
 \section{Project Overview}
 \label{sec:overview}
 
@@ -207,20 +198,20 @@ Whilst development is ongoing, test cases will be created to validate correctnes
 \begin{table}[H]
 	\centering
 	\small
-	\caption{Key source files and their roles in the assembly backend implementation}
+	\caption{Key source files and their roles for the refactor.}
 	\label{tab:files}
 	\begin{tabular}{@{}lll@{}}
 		\toprule
-		\textbf{File}                                      & \textbf{Purpose}         & \textbf{Implementation}           \\ \midrule
-		\file{visitors/asm\_visitor.[hpp/cpp]}             & AST traversal            & Visitor pattern for nodes         \\
-		\file{codegen/instruction\_selector.[hpp/cpp]}     & Instruction mapping      & x86-64 instruction selection      \\
-		\file{codegen/register\_allocator.[hpp/cpp]}       & Register management      & Physical register allocation      \\
-		\file{codegen/asm\_emitter.[hpp/cpp]}              & Code emission            & NASM assembly text generation     \\
-		\file{codegen/calling\_convention.[hpp/cpp]}       & ABI compliance           & System V calling convention       \\
-		\file{codegen/compiler.[hpp/cpp]*}                 & Integration              & Modify to use assembly backend    \\ \bottomrule
+		\textbf{File}                                  & \textbf{Purpose}    & \textbf{Implementation}        \\ \midrule
+		\file{visitors/asm\_visitor.[hpp/cpp]}         & AST traversal       & Visitor pattern for nodes      \\
+		\file{codegen/instruction\_selector.[hpp/cpp]} & Instruction mapping & x86-64 instruction selection   \\
+		\file{codegen/register\_allocator.[hpp/cpp]}   & Register management & Register allocation            \\
+		\file{codegen/asm\_emitter.[hpp/cpp]}          & Code emission       & NASM text generation           \\
+		\file{codegen/calling\_convention.[hpp/cpp]}   & ABI compliance      & System V calling convention    \\
+		\file{codegen/compiler.[hpp/cpp]*}             & Integration         & Modify to use assembly backend \\ \bottomrule
 	\end{tabular}
 	\vspace{0.2em}
-	
+
 	\scriptsize{*Indicates modification of existing file; all others are new files.}
 \end{table}
 
@@ -241,7 +232,7 @@ To mitigate the anticipated challenges, I plan to take a systematic approach.
 This includes thorough research into \asm\ programming and calling conventions.
 Additionally, I will implement the backend incrementally, starting with simple features and gradually adding complexity.
 Testing will be conducted at each stage to ensure correctness and to catch issues early.
-Finally, I will leverage existing resources and tools, such as assemblers and debuggers, to aid in development and troubleshooting.
+I will also leverage existing resources and tools, such as documentation, debuggers, and tutorials, to aid in the development process.
 
 % Process flow diagram.
 \begin{figure}[H]
@@ -274,7 +265,7 @@ Finally, I will leverage existing resources and tools, such as assemblers and de
 		\multicolumn{5}{c}{\Large $\downarrow$} \\[0.3em]
 
 		\multicolumn{5}{c}{
-		\fbox{\parbox{3.5cm}{\centering
+			\fbox{\parbox{3.5cm}{\centering
 		\textbf{System V Calling Convention}    \\[0.1em]
 					\scriptsize Parameter passing \& ABI compliance
 				}}
@@ -283,7 +274,7 @@ Finally, I will leverage existing resources and tools, such as assemblers and de
 		\multicolumn{5}{c}{\Large $\downarrow$} \\[0.3em]
 
 		\multicolumn{5}{c}{
-		\fbox{\parbox{2.5cm}{\centering
+			\fbox{\parbox{2.5cm}{\centering
 		\textbf{Step 4}                         \\[0.2em]
 		\textbf{Emit}                           \\[0.2em]
 					\scriptsize Generate assembly text
@@ -300,12 +291,6 @@ Finally, I will leverage existing resources and tools, such as assemblers and de
 	\caption{Incremental workflow from transforming AST into x86-64 Assembly code with System V ABI compliance.}
 	\label{fig:process-flow}
 \end{figure}
-
-% ==============================================================
-% END OF RESEARCH 1 OVERVIEW
-% ==============================================================
-% The sections below will be expanded in subsequent submissions.
-% ==============================================================
 
 \newpage
 \end{document}
