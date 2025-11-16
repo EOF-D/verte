@@ -22,6 +22,11 @@ namespace verte::lexer {
     else if (current_char == '"')
       return parseString();
 
+    else if (current_char == '@') {
+      nextChar();
+      return Token("@", Token::Type::AT, {line, column});
+    }
+
     return parseSymbol();
   }
 
@@ -184,19 +189,24 @@ namespace verte::lexer {
 
   [[nodiscard]] Token Lexer::parseSymbol() {
     std::string value = std::string(1, currentChar());
+    char next = peekChar();
 
-    // Append the next character if it forms a two-character operator.
-    if (peekChar() == '=') {
-      nextChar(); // Skip `=`.
+    if (currentChar() == '-' && next == '>') {
+      nextChar();
+      value += currentChar();
+    }
+
+    else if (next == '=') {
+      nextChar();
       value += currentChar();
     }
 
     if (tokens::ATOMIC.find(value) != tokens::ATOMIC.end()) {
-      nextChar(); // Go to the next character.
+      nextChar();
       return Token(value, tokens::ATOMIC.at(value), {line, column});
     }
 
-    nextChar(); // Go to the next character.
+    nextChar();
     return Token(value, Token::Type::INVALID, {line, column});
   }
 

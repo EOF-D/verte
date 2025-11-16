@@ -1,0 +1,19 @@
+fun factorial(n: @int): @int do
+  match where
+    when n <= 1 -> return 1;
+    else -> return n * factorial(n - 1);
+  end
+end
+
+fun main(): @int do
+  result: @int = factorial(5);
+
+  match where
+    when result == 120 do
+      printf("Factorial: %d\n", result);
+      return 0;
+    end
+
+    else -> return 1;
+  end
+end

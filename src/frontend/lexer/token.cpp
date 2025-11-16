@@ -46,11 +46,13 @@ namespace verte::lexer {
   inline bool isKeyword(const Token &token) noexcept {
     // clang-format off
     return token.isOneOf({
-      Token::Type::IF, Token::Type::ELSE, Token::Type::THEN, 
+      Token::Type::WHERE, Token::Type::WHEN,
+      Token::Type::MATCH, Token::Type::LET,
+      Token::Type::DO, Token::Type::THEN, 
       Token::Type::OR, Token::Type::AND,
       Token::Type::TRUE, Token::Type::FALSE,
       Token::Type::FOR, Token::Type::WHILE,
-      Token::Type::FN, Token::Type::RETURN
+      Token::Type::FUN, Token::Type::RETURN
     });
     // clang-format on
   }

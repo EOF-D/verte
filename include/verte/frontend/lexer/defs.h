@@ -43,7 +43,8 @@ namespace verte::defs {
   _(COMMA, ",")     /**< Comma token. */                                       \
   _(DOT, ".")       /**< Dot token. */                                         \
   _(COLON, ":")     /**< Colon token. */                                       \
-  _(SEMICOLON, ";") /**< Semicolon token. */
+  _(SEMICOLON, ";") /**< Semicolon token. */                                   \
+  _(AT, "@")        /**< At token. */
 /** @} */
 
 /**
@@ -68,7 +69,8 @@ namespace verte::defs {
   _(LT_EQUAL, "<=")  /**< Less than or equal to operator token. */             \
   _(GT_EQUAL, ">=")  /**< Greater than or equal to operator token. */          \
   _(EQUAL, "==")     /**< Equal to operator token. */                          \
-  _(NEQ_EQUAL, "!=") /**< Not equal to operator token. */
+  _(NEQ_EQUAL, "!=") /**< Not equal to operator token. */                      \
+  _(ARROW, "->")     /**< Arrow operator token. */
 /** @} */
 
 /**
@@ -83,15 +85,20 @@ namespace verte::defs {
 #define KEYWORDS                                                               \
   _(IF, "if")         /**< 'if' keyword token. */                              \
   _(THEN, "then")     /**< 'then' keyword token. */                            \
+  _(MATCH, "match")   /**< 'match' keyword token. */                           \
+  _(WHERE, "where")   /**< 'where' keyword token. */                           \
+  _(WHEN, "when")     /**< 'when' keyword token. */                            \
+  _(DO, "do")         /**< 'do' keyword token. */                              \
+  _(END, "end")       /**< 'end' keyword token. */                             \
   _(ELSE, "else")     /**< 'else' keyword token. */                            \
   _(OR, "or")         /**< 'or' keyword token. */                              \
   _(AND, "and")       /**< 'and' keyword token. */                             \
   _(TRUE, "true")     /**< 'true' keyword token. */                            \
   _(FALSE, "false")   /**< 'false' keyword token. */                           \
-  _(CONST, "const")   /**< 'const' keyword token. */                           \
+  _(LET, "let")       /**< 'let' keyword token. */                             \
   _(FOR, "for")       /**< 'for' keyword token. */                             \
   _(WHILE, "while")   /**< 'while' keyword token. */                           \
-  _(FN, "fn")         /**< 'fn' keyword token. */                              \
+  _(FUN, "fun")       /**< 'fun' keyword token. */                             \
   _(RETURN, "return") /**< 'return' keyword token. */
 /** @} */
 

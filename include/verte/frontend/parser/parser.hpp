@@ -77,16 +77,39 @@ namespace verte::nodes {
     [[nodiscard]] NodePtr parseAssign();
 
     /**
-     * @brief Parse an if statement.
-     * @return The parsed if statement.
+     * @brief Parse a match statement.
+     * @return The parsed match statement.
      */
-    [[nodiscard]] IfNodePtr parseIf();
+    [[nodiscard]] NodePtr parseMatch();
 
     /**
-     * @brief Parse an if-else statement.
-     * @return The parsed if-else statement.
+     * @brief Parse a guard within a match statement.
+     * @param matchExpr Expression being matched against.
+     * @return The parsed guard as an IfNode.
      */
-    [[nodiscard]] NodePtr parseIfElse(IfNodePtr ifStmt);
+    [[nodiscard]] IfNodePtr parseGuard(const NodePtr &matchExpr);
+
+    /**
+     * @brief Parse a guard expression.
+     * @param matchExpr Expression being matched against.
+     * @return The condition expression.
+     */
+    [[nodiscard]] NodePtr parseGuardExpr(const NodePtr &matchExpr);
+
+    /**
+     * @brief Parse a guard body (arrow or do-end block).
+     * @return The block node containing the guard body.
+     */
+    [[nodiscard]] BlockPtr parseGuardBody();
+
+    /**
+     * @brief Build nested IfElseNode structure from guards.
+     * @param guards Vector of guard nodes.
+     * @param defaultBody Optional default case body.
+     * @return The nested conditional structure.
+     */
+    [[nodiscard]] NodePtr buildNestedMatch(std::vector<IfNodePtr> guards,
+                                           BlockPtr defaultBody = nullptr);
 
     /**
      * @brief Parse a function declaration statement.

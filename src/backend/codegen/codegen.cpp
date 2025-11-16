@@ -158,26 +158,28 @@ namespace verte::codegen {
     if (currentFunc == nullptr)
       error("If statement must be inside a function.");
 
-    // Create basic blocks for the condition, then, else, and merge
     auto current = currentFunc->llvmFunc;
 
     llvm::BasicBlock *cond = llvm::BasicBlock::Create(context, "cond", current);
     llvm::BasicBlock *then = llvm::BasicBlock::Create(context, "then", current);
-
     llvm::BasicBlock *merge =
         llvm::BasicBlock::Create(context, "merge", current);
 
-    // Create the conditional branch.
     builder->CreateBr(cond);
     builder->SetInsertPoint(cond);
     llvm::Value *condValue =
         std::get<llvm::Value *>(node.getCond()->accept(*this));
     builder->CreateCondBr(condValue, then, merge);
 
-    // Create the body of the if-statement.
+    // Then block.
     builder->SetInsertPoint(then);
     node.getBlock()->accept(*this);
-    builder->CreateBr(merge);
+
+    // Only add branch if current insert block is valid and has no terminator.
+    if (builder->GetInsertBlock() &&
+        !builder->GetInsertBlock()->getTerminator()) {
+      builder->CreateBr(merge);
+    }
 
     builder->SetInsertPoint(merge);
     return {};
@@ -187,36 +189,54 @@ namespace verte::codegen {
     if (currentFunc == nullptr)
       error("If-else statement must be inside a function.");
 
-    // Create basic blocks for the condition, then, else, and merge
     auto current = currentFunc->llvmFunc;
 
     llvm::BasicBlock *cond = llvm::BasicBlock::Create(context, "cond", current);
     llvm::BasicBlock *then = llvm::BasicBlock::Create(context, "then", current);
-
     llvm::BasicBlock *else_ =
         llvm::BasicBlock::Create(context, "else", current);
-
     llvm::BasicBlock *merge =
         llvm::BasicBlock::Create(context, "merge", current);
 
-    // Create the conditional branch.
     builder->CreateBr(cond);
     builder->SetInsertPoint(cond);
     llvm::Value *condValue =
         std::get<llvm::Value *>(node.getIfNode()->getCond()->accept(*this));
     builder->CreateCondBr(condValue, then, else_);
 
-    // Create the body of the if-statement.
+    // Then block.
     builder->SetInsertPoint(then);
     node.getIfNode()->getBlock()->accept(*this);
-    builder->CreateBr(merge);
 
-    // Create the body of the else-statement.
+    // nly add branch if current insert block is valid and has no
+    // terminator.
+    if (builder->GetInsertBlock() &&
+        !builder->GetInsertBlock()->getTerminator()) {
+      builder->CreateBr(merge);
+    }
+
+    // Else block.
     builder->SetInsertPoint(else_);
     node.getElseBlock()->accept(*this);
-    builder->CreateBr(merge);
 
-    builder->SetInsertPoint(merge);
+    // Only add branch if current insert block is valid and has no
+    // terminator.
+    if (builder->GetInsertBlock() &&
+        !builder->GetInsertBlock()->getTerminator()) {
+      builder->CreateBr(merge);
+    }
+
+    // Determine if merge block is reachable.
+    bool thenTerminated = then->getTerminator() != nullptr;
+    bool elseTerminated = else_->getTerminator() != nullptr;
+
+    if (thenTerminated && elseTerminated) {
+      builder->SetInsertPoint(merge);
+      builder->CreateUnreachable();
+    } else {
+      builder->SetInsertPoint(merge);
+    }
+
     return {};
   }
 

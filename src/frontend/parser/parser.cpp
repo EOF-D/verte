@@ -8,6 +8,59 @@
 #include <memory>
 
 namespace verte::nodes {
+  /**
+   * @brief Clone an expression node.
+   * @param expr The expression to clone.
+   * @return The cloned expression.
+   */
+  NodePtr cloneExpr(const NodePtr &expr) {
+    // Handle null case.
+    if (!expr) {
+      return nullptr;
+    }
+
+    // Variable node.
+    if (const auto *var = dynamic_cast<const VariableNode *>(expr.get())) {
+      return std::make_unique<VariableNode>(var->getName());
+    }
+
+    // Literal node.
+    if (const auto *lit = dynamic_cast<const LiteralNode *>(expr.get())) {
+      return std::make_unique<LiteralNode>(lit->getValue(), lit->getType());
+    }
+
+    // Binary node (recursive).
+    if (const auto *bin = dynamic_cast<const BinaryNode *>(expr.get())) {
+      return std::make_unique<BinaryNode>(
+          cloneExpr(bin->getLHS()), cloneExpr(bin->getRHS()), bin->getOp());
+    }
+
+    // Unary node (recursive).
+    if (const auto *unary = dynamic_cast<const UnaryNode *>(expr.get())) {
+      return std::make_unique<UnaryNode>(cloneExpr(unary->getOperand()),
+                                         unary->getOp());
+    }
+
+    // Call node (recursive for arguments).
+    if (const auto *call = dynamic_cast<const CallNode *>(expr.get())) {
+      std::vector<NodePtr> clonedArgs;
+      clonedArgs.reserve(call->getArgs().size()); // Pre-allocate.
+
+      for (const auto &arg : call->getArgs()) {
+        clonedArgs.push_back(cloneExpr(arg));
+      }
+
+      return std::make_unique<CallNode>(
+          std::make_unique<VariableNode>(call->getCallee()->getName()),
+          std::move(clonedArgs));
+    }
+
+    // Unsupported node type.
+    throw std::runtime_error("Cannot clone expression: unsupported node type.");
+  }
+} // namespace verte::nodes
+
+namespace verte::nodes {
   [[nodiscard]] std::unique_ptr<ProgramNode> Parser::parse() {
     // PROGRAM -> STMT*
     std::vector<NodePtr> body;
@@ -25,7 +78,7 @@ namespace verte::nodes {
     auto next = peekToken();
 
     // Check if the current token is a variable declaration.
-    if ((token.is(Token::Type::IDENTIFIER) || token.is(Token::Type::CONST)) &&
+    if ((token.is(Token::Type::IDENTIFIER) || token.is(Token::Type::LET)) &&
         (next.is(Token::Type::IDENTIFIER) || next.is(Token::Type::COLON)))
       return parseVarDecl();
 
@@ -33,23 +86,12 @@ namespace verte::nodes {
     else if (token.is(Token::Type::IDENTIFIER) && next.is(Token::Type::ASSIGN))
       return parseAssign();
 
-    // Check if the current token is an if statement/else statement.
-    else if (token.is(Token::Type::IF)) {
-      auto ifNode = parseIf();
+    // Check if the current token is a match statement.
+    else if (token.is(Token::Type::MATCH))
+      return parseMatch();
 
-      // Check if there's an else statement.
-      if (currentToken().is(Token::Type::ELSE))
-        return parseIfElse(std::move(ifNode));
-
-      return ifNode;
-    }
-
-    // Check if the current token is a block.
-    else if (token.is(Token::Type::LBRACE))
-      return parseBlock();
-
-    // Check if the current token is a function/prototype declaration.
-    else if (token.is(Token::Type::FN))
+    // Check if the current token is a function declaration.
+    else if (token.is(Token::Type::FUN))
       return parseFuncDecl();
 
     // Check if the current token is a return statement.
@@ -61,9 +103,9 @@ namespace verte::nodes {
   }
 
   [[nodiscard]] NodePtr Parser::parseVarDecl() {
-    // VAR_DECL -> (CONST)? IDENTIFIER ':' TYPE '=' EXPR ';'
+    // VAR_DECL -> (let)? IDENTIFIER ':' '@' TYPE '=' EXPR ';'
     bool isConst = false;
-    if (match(Token::Type::CONST))
+    if (match(Token::Type::LET))
       isConst = true;
 
     auto ident = currentToken();
@@ -103,52 +145,148 @@ namespace verte::nodes {
     return create<AssignNode>(ident.getValue(), std::move(expr));
   }
 
-  [[nodiscard]] IfNodePtr Parser::parseIf() {
-    // IF_STMT -> IF '[' EXPR ']' THEN '{' STMT* '}'
-    if (!match(Token::Type::IF))
-      error("Expected an `if` for the if statement.");
+  [[nodiscard]] NodePtr Parser::parseMatch() {
+    // MATCH_STMT -> match (EXPR)? where GUARD+ (else GUARD_BODY)? end
+    if (!match(Token::Type::MATCH))
+      error("Expected `match` keyword.");
 
-    if (!match(Token::Type::LBRACKET))
-      error("Expected a `[` after the `if` keyword.");
+    // Check for optional expression.
+    NodePtr matchExpr = nullptr;
+    if (!currentToken().is(Token::Type::WHERE)) {
+      matchExpr = parseExpr();
+    }
 
-    auto condition = parseExpr();
-    if (!match(Token::Type::RBRACKET))
-      error("Expected a `]` after the condition.");
+    if (!match(Token::Type::WHERE))
+      error("Expected `where` after match expression.");
 
-    if (!match(Token::Type::THEN))
-      error("Expected a `then` after the condition.");
+    // Parse guards.
+    std::vector<IfNodePtr> guards;
+    while (currentToken().is(Token::Type::WHEN)) {
+      guards.push_back(parseGuard(matchExpr));
+    }
 
-    auto then = parseBlock();
-    return std::make_unique<IfNode>(std::move(condition), std::move(then));
+    if (guards.empty())
+      error("Match statement must have at least one guard.");
+
+    // Parse optional default case.
+    BlockPtr defaultBody = nullptr;
+    if (match(Token::Type::ELSE)) {
+      defaultBody = parseGuardBody();
+    }
+
+    if (!match(Token::Type::END))
+      error("Expected `end` to close match statement.");
+
+    // Build nested if-else structure.
+    return buildNestedMatch(std::move(guards), std::move(defaultBody));
   }
 
-  [[nodiscard]] NodePtr Parser::parseIfElse(IfNodePtr ifStmt) {
-    // IF_ELSE_STMT -> IF_STMT ELSE '{' STMT* '}'
-    if (!match(Token::Type::ELSE))
-      error("Expected an `else` after the if statement.");
+  [[nodiscard]] IfNodePtr Parser::parseGuard(const NodePtr &matchExpr) {
+    // GUARD -> when GUARD_EXPR GUARD_BODY
+    if (!match(Token::Type::WHEN))
+      error("Expected `when` keyword.");
 
-    auto elseStmt = parseBlock();
-    return create<IfElseNode>(std::move(ifStmt), std::move(elseStmt));
+    NodePtr condition = parseGuardExpr(matchExpr);
+    BlockPtr body = parseGuardBody();
+
+    return std::make_unique<IfNode>(std::move(condition), std::move(body));
+  }
+
+  [[nodiscard]] NodePtr Parser::parseGuardExpr(const NodePtr &matchExpr) {
+    // GUARD_EXPR -> EXPR (for boolean guards)
+    //            -> COMPARISON_OP EXPR (for comparison matching)
+    //            -> EXPR (for value matching, becomes ==)
+    if (matchExpr == nullptr) {
+      return parseExpr();
+    }
+
+    // Check if it's a comparison operator.
+    auto token = currentToken();
+    if (token.isOneOf({Token::Type::GREATER, Token::Type::GT_EQUAL,
+                       Token::Type::LESS, Token::Type::LT_EQUAL,
+                       Token::Type::EQUAL, Token::Type::NEQ_EQUAL})) {
+
+      std::string op = token.getValue();
+      (void)nextToken(); // Consume operator.
+
+      NodePtr value = parseExpr();
+      return create<BinaryNode>(cloneExpr(matchExpr), std::move(value), op);
+    }
+
+    NodePtr value = parseExpr();
+    return create<BinaryNode>(cloneExpr(matchExpr), std::move(value), "==");
+  }
+
+  [[nodiscard]] BlockPtr Parser::parseGuardBody() {
+    // GUARD_BODY -> '->' STMT
+    //            -> do STMT* end
+    if (match(Token::Type::ARROW)) {
+      NodePtr stmt = parseStmt();
+
+      std::vector<NodePtr> body;
+      body.push_back(std::move(stmt));
+
+      return std::make_unique<BlockNode>(std::move(body));
+    }
+
+    else if (currentToken().is(Token::Type::DO)) {
+      return parseBlock();
+    }
+
+    else {
+      error("Expected `->` or `do` for guard body.");
+    }
   }
 
   [[nodiscard]] NodePtr Parser::parseFuncDecl() {
-    // FUNC_DECL -> FN IDENTIFIER '(' PARAMS ')' '->' TYPE (';' | '{' STMT* '}')
-    if (!match(Token::Type::FN))
-      error("Expected a `fn` for the function declaration.");
+    // FUNC_DECL -> fun IDENTIFIER '(' PARAMS ')' ':' '@' TYPE (';' | do STMT*
+    // end)
+    if (!match(Token::Type::FUN))
+      error("Expected a `fun` for the function declaration.");
 
     auto proto = parseProto();
 
     if (match(Token::Type::SEMICOLON))
       return proto;
 
-    else if (currentToken().is(Token::Type::LBRACE))
+    else if (currentToken().is(Token::Type::DO))
       return create<FuncDeclNode>(std::move(proto), parseBlock());
 
-    error("Expected a `;` or `{` after the function prototype.");
+    error("Expected a `;` or `do` after the function prototype.");
+  }
+
+  [[nodiscard]] NodePtr Parser::buildNestedMatch(std::vector<IfNodePtr> guards,
+                                                 BlockPtr defaultBody) {
+    if (guards.empty()) {
+      return defaultBody;
+    }
+
+    // Take the first guard.
+    IfNodePtr first = std::move(guards[0]);
+    guards.erase(guards.begin());
+
+    // If no more guards, check for default.
+    if (guards.empty()) {
+      if (defaultBody) {
+        return create<IfElseNode>(std::move(first), std::move(defaultBody));
+      } else {
+        return first;
+      }
+    }
+
+    // Recursively build the rest.
+    NodePtr rest = buildNestedMatch(std::move(guards), std::move(defaultBody));
+
+    // Wrap rest in a BlockNode for the else branch.
+    std::vector<NodePtr> elseBody;
+    elseBody.push_back(std::move(rest));
+
+    BlockPtr elseBlock = std::make_unique<BlockNode>(std::move(elseBody));
+    return create<IfElseNode>(std::move(first), std::move(elseBlock));
   }
 
   [[nodiscard]] ProtoPtr Parser::parseProto() {
-    // PROTO -> IDENTIFIER '(' PARAMS ')' '->' TYPE
+    // PROTO -> IDENTIFIER '(' PARAMS ')' ':' '@' TYPE
     auto ident = currentToken();
     if (!match(Token::Type::IDENTIFIER))
       error("Expected an identifier for the function name.");
@@ -158,12 +296,9 @@ namespace verte::nodes {
 
     std::vector<Parameter> params = parseParams();
 
-    if (!currentToken().is(Token::Type::MINUS) &&
-        !peekToken().is(Token::Type::GREATER)) {
-      error("Expected a `-> return type` after the parameters.");
-    }
+    if (!match(Token::Type::COLON))
+      error("Expected `:` before return type.");
 
-    index += 2; // Skip the `->` token.
     return std::make_unique<ProtoNode>(ident.getValue(), params, parseType());
   }
 
@@ -203,10 +338,13 @@ namespace verte::nodes {
   }
 
   [[nodiscard]] TypeInfo Parser::parseType() {
-    // TYPE -> IDENTIFIER
+    // TYPE -> '@' IDENTIFIER
+    if (!match(Token::Type::AT))
+      error("Expected '@' before type identifier.");
+
     auto token = currentToken();
     if (!match(Token::Type::IDENTIFIER))
-      error("Expected a type identifier.");
+      error("Expected a type identifier after '@'.");
 
     return TypeInfo(TypeInfo::toEnum(token.getValue()), token.getValue());
   }
@@ -233,13 +371,14 @@ namespace verte::nodes {
   }
 
   [[nodiscard]] BlockPtr Parser::parseBlock() {
-    // BLOCK -> '{' STMT* '}'
+    // BLOCK -> do STMT* end
     std::vector<NodePtr> body;
-    if (!match(Token::Type::LBRACE))
-      error("Expected a `{` to start a block.");
 
-    // Parse until we reach the closing brace.
-    while (!match(Token::Type::RBRACE))
+    if (!match(Token::Type::DO))
+      error("Expected a `do` to start a block.");
+
+    // Parse until we reach the closing 'end'.
+    while (!match(Token::Type::END))
       body.push_back(parseStmt());
 
     return std::make_unique<BlockNode>(std::move(body));
