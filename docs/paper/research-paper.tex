@@ -129,11 +129,10 @@
 % What: Project Description.
 \subsection{What: Project Description}
 \label{subsec:what}
-
 This project aims to refactor the existing code generation backend of the \vertec\ compiler.
-\vertec\ is a compiler built for the \verte\ programming language, currently \verte\ utilizes \llvm\ for machine code generation.
-With the proposed project, the \llvm\ backend will be replaced with a custom, hand-written \asm\ code generator.
-This new backend will directly translate the \code{AST} (abstract syntax tree) created by the \verte\ frontend into \asm\ instructions.
+\vertec\ is a compiler built for the \verte\ programming language which currently utilizes \llvm\ for machine code generation.
+With the proposed project, the \llvm\ backend will be replaced with a custom, hand-written \asm\ backend. 
+This new backend will directly translate the \code{AST} (abstract syntax tree) created by the current frontend into \asm\ instructions.
 
 % Verte architecture diagram.
 \begin{figure}[h]
