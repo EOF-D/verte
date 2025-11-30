@@ -1,5 +1,5 @@
 /**
- * @brief IR operand types.
+ * @brief IR operand representation.
  * @file operand.hpp
  */
 
@@ -17,122 +17,169 @@
  */
 namespace verte::ir {
   /**
-   * @brief Type of IR operand.
+   * @enum OperandType
+   * @brief Types of the operand.
    */
   enum class OperandType : uint8_t {
-    VREGISTER,  /**< Virtual register operand. */
-    IMMEDIATE,  /**< Immediate value operand. */
-    FIMMEDIATE, /**< Floating-point immediate value operand. */
-    GLOBAL,     /**< Global variable/label operand. */
-    STACK_SLOT  /**< Stack slot operand. */
+    VREG,       /**< Virtual register. */
+    IMMEDIATE,  /**< Integer immediate value. */
+    FIMMEDIATE, /**< Floating-point immediate value. */
+    GLOBAL,     /**< Global variable reference. */
+    STACK_SLOT  /**< Stack slot reference. */
   };
 
   /**
    * @class Operand
-   * @brief Operand for intermediate representation.
+   * @brief Represents an operand in the IR.
    */
   class Operand {
   public:
     /**
-     * @brief Create a virtual register operand.
-     * @param id ID of the virtual register.
-     * @param type Type of the value stored in register.
-     * @return Virtual register operand.
+     * @brief Default constructor.
      */
-    static Operand vregister(uint32_t id, types::TypeInfo::DataType type);
+    Operand() noexcept
+        : type(OperandType::IMMEDIATE), typeInfo(types::TypeInfo()),
+          value(int64_t(0)) {}
 
     /**
-     * @brief Create an immediate operand.
-     * @param value Immediate integer value.
-     * @return Immediate operand.
-     */
-    static Operand immediate(int64_t value);
-
-    /**
-     * @brief Create a floating-point immediate operand.
-     * @param value Immediate floating-point value.
-     * @return Floating-point immediate operand.
-     */
-    static Operand fimmediate(double value);
-
-    /**
-     * @brief Create a global variable/label operand.
-     * @param name Name of the global variable/label.
-     * @return Global operand.
-     */
-    static Operand global(const std::string &name);
-
-    /**
-     * @brief Create a stack slot operand.
-     * @param offset Offset of the stack slot.
-     * @param type Type of value in the stack slot.
-     * @return Stack slot operand.
-     */
-    static Operand stackSlot(int32_t offset, types::TypeInfo::DataType);
-
-    /**
-     * @brief Get operand type.
+     * @brief Get the operand type.
      * @return The operand type.
      */
-    OperandType getType() const { return type; }
+    [[nodiscard]] OperandType getType() const noexcept { return type; }
+
+    /**
+     * @brief Get the type information.
+     * @return The type information.
+     */
+    [[nodiscard]] const types::TypeInfo &getTypeInfo() const noexcept {
+      return typeInfo;
+    }
+
+    /**
+     * @brief Check if this is a virtual register.
+     * @return True if virtual register, otherwise false.
+     */
+    [[nodiscard]] bool isVReg() const noexcept {
+      return type == OperandType::VREG;
+    }
+
+    /**
+     * @brief Check if this is an immediate value.
+     * @return True if immediate, otherwise false.
+     */
+    [[nodiscard]] bool isImmediate() const noexcept {
+      return type == OperandType::IMMEDIATE;
+    }
+
+    /**
+     * @brief Check if this is a floating-point immediate.
+     * @return True if float immediate, otherwise false.
+     */
+    [[nodiscard]] bool isFImmediate() const noexcept {
+      return type == OperandType::FIMMEDIATE;
+    }
+
+    /**
+     * @brief Check if this is a global reference.
+     * @return True if global, otherwise false.
+     */
+    [[nodiscard]] bool isGlobal() const noexcept {
+      return type == OperandType::GLOBAL;
+    }
+
+    /**
+     * @brief Check if this is a stack slot.
+     * @return True if stack slot, otherwise false.
+     */
+    [[nodiscard]] bool isStackSlot() const noexcept {
+      return type == OperandType::STACK_SLOT;
+    }
 
     /**
      * @brief Get virtual register ID.
      * @return The virtual register ID.
      */
-    uint32_t getVRegId() const;
+    [[nodiscard]] uint32_t getVRegID() const;
 
     /**
      * @brief Get integer immediate value.
-     * @return The immediate integer value.
+     * @return The immediate value.
      */
-    int64_t getImmediate() const;
+    [[nodiscard]] int64_t getImmediate() const;
 
     /**
      * @brief Get floating-point immediate value.
-     * @return The immediate floating-point value.
+     * @return The floating-point immediate value.
      */
-    double getFImmediate() const;
+    [[nodiscard]] double getFImmediate() const;
 
     /**
-     * @brief Get global variable/label name.
-     * @return The name of the global variable/label.
+     * @brief Get global name.
+     * @return The global variable name.
      */
-    const std::string &getGlobalName() const;
+    [[nodiscard]] const std::string &getGlobalName() const;
 
     /**
      * @brief Get stack slot offset.
-     * @return The offset of the stack slot.
+     * @return The stack slot offset.
      */
-    int32_t getStackOffset() const;
+    [[nodiscard]] int32_t getStackOffset() const;
 
     /**
-     * @brief Get the type of value this operand represents.
-     * @return The value type.
+     * @brief Create a virtual register operand.
+     * @param id The virtual register ID.
+     * @param typeInfo The type information.
+     * @return The operand.
      */
-    const types::TypeInfo getValueType() const { return valueType; }
+    static Operand vreg(uint32_t id, const types::TypeInfo &typeInfo) noexcept;
 
     /**
-     * @brief Check if operand is a floating point value.
-     * @return True if floating point, otherwise fale.
+     * @brief Create an integer immediate operand.
+     * @param value The immediate value.
+     * @return The operand.
      */
-    bool isFloatingPoint() const;
+    static Operand imm(int64_t value) noexcept;
+
+    /**
+     * @brief Create a floating-point immediate operand.
+     * @param value The floating-point value.
+     * @return The operand.
+     */
+    static Operand fimm(double value) noexcept;
+
+    /**
+     * @brief Create a global variable operand.
+     * @param name The global variable name.
+     * @return The operand.
+     */
+    static Operand global(const std::string &name) noexcept;
+
+    /**
+     * @brief Create a stack slot operand.
+     * @param offset The stack offset.
+     * @param typeInfo The type information.
+     * @return The operand.
+     */
+    static Operand stackSlot(int32_t offset,
+                             const types::TypeInfo &typeInfo) noexcept;
 
   private:
     /**
-     * @brief Private constructor.
-     * @param type Operand type.
-     * @param valueType Value type.
+     * @brief Private constructor for factory methods.
+     * @param type The operand type.
+     * @param typeInfo The type information.
+     * @param value The operand value.
      */
-    Operand(OperandType type, types::TypeInfo::DataType valueType) noexcept
-        : type(type), valueType(valueType) {}
+    Operand(OperandType type, const types::TypeInfo &typeInfo,
+            std::variant<uint32_t, int64_t, double, std::string, int32_t>
+                value) noexcept
+        : type(type), typeInfo(typeInfo), value(std::move(value)) {}
 
-    OperandType type; /**< Operand type. */
-    types::TypeInfo::DataType
-        valueType; /**< Type of value represented by operand. */
+    OperandType type;         /**< The operand type. */
+    types::TypeInfo typeInfo; /**< The type information. */
 
     std::variant<uint32_t, int64_t, double, std::string, int32_t>
-        data; /**< Operand data. */
+        value; /**< The operand value. */
   };
 } // namespace verte::ir
 
