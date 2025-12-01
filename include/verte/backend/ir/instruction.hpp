@@ -76,7 +76,8 @@ namespace verte::ir {
      * @param lhs The left-hand side operand.
      * @param rhs The right-hand side operand.
      */
-    Instruction(Opcode opcode, Operand dest, Operand lhs, Operand rhs) noexcept
+    explicit Instruction(Opcode opcode, Operand dest, Operand lhs,
+                         Operand rhs) noexcept
         : opcode(opcode), dest(std::move(dest)),
           operands{std::move(lhs), std::move(rhs)} {}
 
@@ -86,7 +87,7 @@ namespace verte::ir {
      * @param dest The destination operand.
      * @param operand The source operand.
      */
-    Instruction(Opcode opcode, Operand dest, Operand operand) noexcept
+    explicit Instruction(Opcode opcode, Operand dest, Operand operand) noexcept
         : opcode(opcode), dest(std::move(dest)), operands{std::move(operand)} {}
 
     /**
@@ -96,9 +97,10 @@ namespace verte::ir {
      * @param cond Optional condition for CONDBR.
      * @param falseLabel Optional false label for CONDBR.
      */
-    Instruction(Opcode opcode, std::string label,
-                std::optional<Operand> cond = std::nullopt,
-                std::optional<std::string> falseLabel = std::nullopt) noexcept
+    explicit Instruction(
+        Opcode opcode, std::string label,
+        std::optional<Operand> cond = std::nullopt,
+        std::optional<std::string> falseLabel = std::nullopt) noexcept
         : opcode(opcode), label(std::move(label)),
           falseLabel(std::move(falseLabel)) {
       // If conditional branch, add condition operand.
@@ -113,8 +115,8 @@ namespace verte::ir {
      * @param funcName The function name.
      * @param args The function arguments.
      */
-    Instruction(Operand dest, std::string funcName,
-                std::vector<Operand> args) noexcept
+    explicit Instruction(Operand dest, std::string funcName,
+                         std::vector<Operand> args) noexcept
         : opcode(Opcode::CALL), dest(std::move(dest)),
           funcName(std::move(funcName)), operands(std::move(args)) {}
 

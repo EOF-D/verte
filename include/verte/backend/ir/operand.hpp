@@ -170,9 +170,10 @@ namespace verte::ir {
      * @param typeInfo The type information.
      * @param value The operand value.
      */
-    Operand(OperandType type, const types::TypeInfo &typeInfo,
-            std::variant<uint32_t, int64_t, double, std::string, int32_t>
-                value) noexcept
+    explicit Operand(
+        OperandType type, const types::TypeInfo &typeInfo,
+        std::variant<uint32_t, int64_t, double, std::string, int32_t>
+            value) noexcept
         : type(type), typeInfo(typeInfo), value(std::move(value)) {}
 
     OperandType type;         /**< The operand type. */
