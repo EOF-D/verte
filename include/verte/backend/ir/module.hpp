@@ -29,7 +29,7 @@ namespace verte::ir {
      * @brief Construct a new Module.
      * @param name The name of the module.
      */
-    explicit Module(const std::string &name) : name(std::move(name)) {}
+    explicit Module(std::string name) : name(std::move(name)) {}
 
     /**
      * @brief Get the module name.
