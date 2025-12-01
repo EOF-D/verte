@@ -6,7 +6,7 @@
 #ifndef VERTE_BACKEND_IR_OPERAND_HPP
 #define VERTE_BACKEND_IR_OPERAND_HPP
 
-#include "verte/types.hpp"
+#include "verte/type_info.hpp"
 
 #include <cstdint>
 #include <variant>
