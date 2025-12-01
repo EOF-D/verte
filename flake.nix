@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    nixpkgs-latest.url = "github:nixos/nixpkgs";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
   };
@@ -16,7 +15,6 @@
   outputs = {
     self,
     nixpkgs,
-    nixpkgs-latest,
     devenv,
     systems,
     ...
@@ -41,7 +39,6 @@
     defaultPackage = forEachSystem (system: self.packages.${system}.vertec);
     devShells = forEachSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      pkgs-latest = nixpkgs-latest.legacyPackages.${system};
     in {
       verte-dev = devenv.lib.mkShell {
         inherit inputs pkgs;
@@ -58,8 +55,6 @@
               llvmPackages_17.libllvm
               valgrind
               gdb
-              pkgs-latest.vscode
-              texlive.combined.scheme-full
               self.packages.${system}.vertec
             ];
 
