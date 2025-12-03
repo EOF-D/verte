@@ -19,23 +19,6 @@
  */
 namespace verte::ir {
   /**
-   * @struct Parameter
-   * @brief Represents a function parameter.
-   */
-  struct Parameter {
-    std::string name;     /**< The parameter name. */
-    types::TypeInfo type; /**< The parameter type. */
-
-    /**
-     * @brief Construct a new Parameter.
-     * @param name The parameter name.
-     * @param type The parameter type.
-     */
-    Parameter(std::string name, types::TypeInfo type)
-        : name(std::move(name)), type(type) {}
-  };
-
-  /**
    * @class Function
    * @brief Represents a function in the IR.
    */
@@ -47,7 +30,7 @@ namespace verte::ir {
      * @param params The function parameters.
      * @param returnType The return type.
      */
-    explicit Function(std::string name, std::vector<Parameter> params,
+    explicit Function(std::string name, std::vector<types::Parameter> params,
                       types::TypeInfo returnType)
         : name(std::move(name)), params(std::move(params)),
           returnType(returnType) {}
@@ -62,7 +45,8 @@ namespace verte::ir {
      * @brief Get the function parameters.
      * @return The parameters.
      */
-    [[nodiscard]] const std::vector<Parameter> &getParams() const noexcept {
+    [[nodiscard]] const std::vector<types::Parameter> &
+    getParams() const noexcept {
       return params;
     }
 
@@ -142,9 +126,9 @@ namespace verte::ir {
     }
 
   private:
-    std::string name;              /**< The function name. */
-    std::vector<Parameter> params; /**< The function parameters. */
-    types::TypeInfo returnType;    /**< The return type. */
+    std::string name;                     /**< The function name. */
+    std::vector<types::Parameter> params; /**< The function parameters. */
+    types::TypeInfo returnType;           /**< The return type. */
 
     std::vector<BasicBlockPtr> blocks; /**< The basic blocks. */
     std::unordered_map<std::string, BasicBlock *>

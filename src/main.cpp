@@ -3,7 +3,7 @@
 
 #include "verte/frontend/lexer/lexer.hpp"
 #include "verte/frontend/parser/parser.hpp"
-#include "verte/frontend/visitors/pretty.hpp"
+#include "verte/frontend/visitors/ast_printer.hpp"
 
 #include "verte/utils/argparser.hpp"
 #include "verte/utils/logger.hpp"
@@ -38,25 +38,24 @@ int main(int argc, char **argv) {
   // Print the AST if requested.
   const auto ast = parser.parse();
   if (args.shouldPrintAst()) {
-    PrettyPrinter printer;
+    ASTPrinter printer;
     ast->accept(printer);
 
     return 0;
   }
 
-  // Generate target code.
-  llvm::LLVMContext context;
-  Codegen codegen(context, std::make_unique<llvm::Module>("main", context));
+  // Generate IR code.
+  Codegen codegen("main");
   ast->accept(codegen);
 
-  // Print the LLVM IR if requested.
+  // Print the IR if requested.
   if (args.shouldPrintIr()) {
-    codegen.getModule().print(llvm::outs(), nullptr);
+    // TODO: Implement IR printing.
     return 0;
   }
 
   // Compile the module to native code.
-  codegen::Compiler compiler;
+  Compiler compiler;
   if (!compiler.compile(codegen.getModule(), outputFile)) {
     logger.error("Failed to compile the module to native code.");
     return -1;

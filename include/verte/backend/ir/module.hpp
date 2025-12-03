@@ -62,7 +62,7 @@ namespace verte::ir {
      * @return Pointer to the created function.
      */
     Function *createFunction(const std::string &name,
-                             std::vector<Parameter> params,
+                             std::vector<types::Parameter> params,
                              types::TypeInfo returnType) {
       auto func =
           std::make_unique<Function>(name, std::move(params), returnType);

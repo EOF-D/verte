@@ -1,16 +1,14 @@
 /**
- * @brief Pretty printer implementation.
- * @file pretty.hpp
+ * @brief AST pretty printer definition.
+ * @file ast_printer.hpp
  */
 
-#ifndef VERTE_FRONTEND_VISITORS_PRETTY_HPP
-#define VERTE_FRONTEND_VISITORS_PRETTY_HPP
+#ifndef VERTE_FRONTEND_VISITORS_AST_PRINTER_HPP
+#define VERTE_FRONTEND_VISITORS_AST_PRINTER_HPP
 
 #include "verte/frontend/visitors/base.hpp"
 
 #include <iostream>
-#include <sstream>
-#include <string>
 
 /**
  * @namespace verte::visitors
@@ -26,24 +24,24 @@ namespace verte::visitors {
       requires(T &stream, typename T::char_type c) { stream << c; };
 
   /**
-   * @class PrettyPrinter
-   * @brief The PrettyPrinter class is responsible for printing the AST in
+   * @class ASTPrinter
+   * @brief The ASTPrinter class is responsible for printing the AST in
    * readable form.
    */
-  class PrettyPrinter : public ASTVisitor {
+  class ASTPrinter : public ASTVisitor {
   public:
     /**
-     * @brief Construct a new PrettyPrinter.
+     * @brief Construct a new ASTPrinter.
      */
-    PrettyPrinter() : stream(std::cout) {}
+    ASTPrinter() : stream(std::cout) {}
 
     /**
-     * @brief Construct a new PrettyPrinter object.
+     * @brief Construct a new ASTPrinter.
      * @tparam Stream The output stream type.
      * @param stream The output stream.
      */
     template <OutputStream Stream>
-    PrettyPrinter(Stream &stream) : stream(stream) {}
+    ASTPrinter(Stream &stream) : stream(stream) {}
 
     /**
      * @brief Visit a ProgramAST node.
@@ -144,28 +142,28 @@ namespace verte::visitors {
 
     /**
      * @brief The IndentGuard class is a helper class used to manage the
-     * indentation level in the PrettyPrinter.
+     * indentation level in the ASTPrinter.
      */
     class IndentGuard {
     public:
       /**
-       * @brief Construct a new IndentGuard object.
-       * @param printer The PrettyPrinter object.
+       * @brief Construct a new IndentGuard.
+       * @param printer The ASTPrinter.
        */
-      explicit IndentGuard(PrettyPrinter &printer) : printer(printer) {
+      explicit IndentGuard(ASTPrinter &printer) : printer(printer) {
         printer.indentLevel++;
       }
 
       /**
-       * @brief Destroy the IndentGuard object.
+       * @brief Destroy the IndentGuard.
        */
       ~IndentGuard() { printer.indentLevel--; }
 
     private:
-      PrettyPrinter &printer; /**< The PrettyPrinter object. */
+      ASTPrinter &printer; /**< The ASTPrinter. */
     };
 
-    // Allow the IndentGuard class to access the private members of the
+    // Allow the IndentGuard class to access the private members.
     friend class IndentGuard;
 
     int indentLevel = 0;  /**< The current indentation level. */
@@ -173,4 +171,4 @@ namespace verte::visitors {
   };
 } // namespace verte::visitors
 
-#endif // VERTE_FRONTEND_VISITORS_PRETTY_HPP
+#endif // VERTE_FRONTEND_VISITORS_AST_PRINTER_HPP

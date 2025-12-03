@@ -191,7 +191,7 @@ TEST_F(IRTest, TestBasicBlockCFGLinks) {
 
 TEST_F(IRTest, TestFunctionCreation) {
   types::TypeInfo intType(types::TypeInfo::DataType::INTEGER);
-  std::vector<ir::Parameter> params;
+  std::vector<types::Parameter> params;
   params.emplace_back("foo", intType);
   params.emplace_back("bar", intType);
 
@@ -236,7 +236,7 @@ TEST_F(IRTest, TestModuleCreateFunction) {
   ir::Module module("foo");
 
   types::TypeInfo intType(types::TypeInfo::DataType::INTEGER);
-  std::vector<ir::Parameter> params;
+  std::vector<types::Parameter> params;
   params.emplace_back("bar", intType);
 
   auto *func = module.createFunction("baz", std::move(params), intType);
@@ -261,7 +261,7 @@ TEST_F(IRTest, TestCompleteIRConstruction) {
   ir::Module module("foo");
   types::TypeInfo intType(types::TypeInfo::DataType::INTEGER);
 
-  std::vector<ir::Parameter> params;
+  std::vector<types::Parameter> params;
   params.emplace_back("foo", intType);
   params.emplace_back("bar", intType);
 

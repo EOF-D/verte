@@ -33,7 +33,7 @@ namespace verte::types {
       UNKNOWN   /**< Unknown type. */
     } dataType; /**< The data type of the node. */
 
-    const std::string name; /**< The name of the type. */
+    std::string name; /**< The name of the type. */
 
     /**
      * @brief Default constructor.

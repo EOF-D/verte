@@ -6,32 +6,12 @@
 #ifndef VERTE_BACKEND_CODEGEN_CODEGEN_HPP
 #define VERTE_BACKEND_CODEGEN_CODEGEN_HPP
 
+#include "verte/backend/ir/basic_block.hpp"
+#include "verte/backend/ir/function.hpp"
+#include "verte/backend/ir/module.hpp"
+#include "verte/backend/ir/operand.hpp"
 #include "verte/frontend/visitors/base.hpp"
 #include "verte/utils/logger.hpp"
-
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <memory>
-
-/**
- * @namespace verte::codegen
- * @brief Code generation namespace. Contains all code generation related
- * classes and functions.
- */
-namespace verte::codegen {
-  /**
-   * @typedef ModulePtr
-   * @brief Unique pointer to an LLVM module.
-   */
-  using ModulePtr = std::unique_ptr<llvm::Module>;
-
-  /**
-   * @typedef BuilderPtr
-   * @brief Unique pointer to an LLVM IR builder.
-   */
-  using BuilderPtr = std::unique_ptr<llvm::IRBuilder<>>;
-} // namespace verte::codegen
 
 /**
  * @namespace verte::codegen
@@ -49,13 +29,11 @@ namespace verte::codegen {
   public:
     /**
      * @brief Construct a new Codegen.
-     * @param context LLVM context.
-     * @param module LLVM module.
+     * @param moduleName Name of the IR module.
      */
-    Codegen(llvm::LLVMContext &context, ModulePtr module)
-        : context(context), currentFunc(), logger("codegen") {
-      this->builder = std::make_unique<llvm::IRBuilder<>>(context);
-      this->module = std::move(module);
+    explicit Codegen(const std::string &moduleName)
+        : module(moduleName), nextVReg(0), currentFunc(nullptr),
+          currentBlock(nullptr), logger("codegen") {
       initTable();
     }
 
@@ -63,7 +41,13 @@ namespace verte::codegen {
      * @brief Get the module used.
      * @return The module.
      */
-    llvm::Module &getModule() const;
+    ir::Module &getModule() { return module; }
+
+    /**
+     * @brief Get the module used (const).
+     * @return The module.
+     */
+    const ir::Module &getModule() const { return module; }
 
     /**
      * @brief Visit a ProgramNode.
@@ -74,7 +58,7 @@ namespace verte::codegen {
     /**
      * @brief Visit a LiteralNode.
      * @param node The LiteralNode to visit.
-     * @return The generated LLVM value.
+     * @return The generated IR operand.
      */
     auto visit(const LiteralNode &node) -> RetT override;
 
@@ -87,14 +71,14 @@ namespace verte::codegen {
     /**
      * @brief Visit a AssignNode.
      * @param node The AssignNode to visit.
-     * @return The generated LLVM value.
+     * @return The generated IR operand.
      */
     auto visit(const AssignNode &node) -> RetT override;
 
     /**
      * @brief Visit a VariableNode.
      * @param node The VariableNode to visit.
-     * @return The generated LLVM value.
+     * @return The generated IR operand.
      */
     auto visit(const VariableNode &node) -> RetT override;
 
@@ -113,21 +97,21 @@ namespace verte::codegen {
     /**
      * @brief Visit a BinaryNode.
      * @param node The BinaryNode to visit.
-     * @return The generated LLVM value.
+     * @return The generated IR operand.
      */
     auto visit(const BinaryNode &node) -> RetT override;
 
     /**
      * @brief Visit a UnaryNode.
      * @param node The UnaryNode to visit.
-     * @return The generated LLVM value.
+     * @return The generated IR operand.
      */
     auto visit(const UnaryNode &node) -> RetT override;
 
     /**
      * @brief Visit a ProtoNode.
      * @param node The ProtoNode to visit.
-     * @return The generated LLVM function.
+     * @return The generated IR function pointer.
      */
     auto visit(const ProtoNode &node) -> RetT override;
 
@@ -140,14 +124,14 @@ namespace verte::codegen {
     /**
      * @brief Visit a FuncDeclNode.
      * @param node The FuncDeclNode to visit.
-     * @return The generated LLVM function.
+     * @return The generated IR function pointer.
      */
     auto visit(const FuncDeclNode &node) -> RetT override;
 
     /**
      * @brief Visit a CallNode.
      * @param node The CallNode to visit.
-     * @return The generated LLVM value.
+     * @return The generated IR operand.
      */
     auto visit(const CallNode &node) -> RetT override;
 
@@ -159,25 +143,27 @@ namespace verte::codegen {
 
   private:
     /**
-     * @brief Get the LLVM type for a given TypeInfo.
-     * @param type The TypeInfo to convert.
-     * @return The corresponding LLVM type.
+     * @brief Allocate a new virtual register.
+     * @param type The type of the register.
+     * @return A new virtual register operand.
      */
-    llvm::Type *getType(const TypeInfo &type) const;
+    ir::Operand allocateVReg(const types::TypeInfo &type) {
+      return ir::Operand::vreg(nextVReg++, type);
+    }
 
     /**
-     * @brief Load a global variable.
-     * @param name The name of the global variable.
-     * @return The loaded LLVM value.
+     * @brief Create a new basic block in the current function.
+     * @param label The label of the basic block.
+     * @return Pointer to the created basic block.
      */
-    llvm::Value *loadGlobal(const std::string &name);
+    ir::BasicBlock *createBlock(const std::string &label);
 
     /**
-     * @brief Create a string.
+     * @brief Create a string constant.
      * @param value The string value.
-     * @return The created LLVM value.
+     * @return The created string operand.
      */
-    llvm::Value *createString(const std::string &value);
+    ir::Operand createString(const std::string &value);
 
     /**
      * @brief Emit an error message and exit.
@@ -192,33 +178,31 @@ namespace verte::codegen {
      * @brief Initialize the symbol table with some constants, etc.
      */
     void initTable() {
-      // Add true & false to the global table.
-      constants["true"] = llvm::ConstantInt::getTrue(context);
-      constants["false"] = llvm::ConstantInt::getFalse(context);
-
-      // TODO: Make preloading of functions have a better interface.
-      std::vector<llvm::Type *> printArgs{builder->getInt8PtrTy()};
-      auto printType =
-          llvm::FunctionType::get(builder->getInt32Ty(), printArgs, true);
-
-      auto func = llvm::Function::Create(
-          printType, llvm::Function::ExternalLinkage, "printf", module.get());
-
-      func->setCallingConv(llvm::CallingConv::C);
+      // Add true & false to the global constants table.
+      globalConstants["true"] = ir::Operand::imm(1);
+      globalConstants["false"] = ir::Operand::imm(0);
     }
 
-    llvm::LLVMContext &context; /**< LLVM context. */
-    ModulePtr module;           /**< LLVM module. */
-    BuilderPtr builder;         /**< LLVM IR builder. */
+    ir::Module module; /**< IR module. */
 
-    std::unique_ptr<types::Function>
-        currentFunc; /**< Current function being processed. */
+    uint32_t nextVReg;            /**< Next virtual register id. */
+    ir::Function *currentFunc;    /**< Current function being processed. */
+    ir::BasicBlock *currentBlock; /**< Current basic block being processed. */
 
-    std::unordered_map<std::string, llvm::Constant *>
-        constants; /**< Constants, i.e true/false. */
+    std::unordered_map<std::string, ir::Operand>
+        constants; /**< Constants in current function. */
 
-    std::unordered_map<std::string, llvm::GlobalVariable *>
+    std::unordered_map<std::string, ir::Operand>
+        locals; /**< Local variables in current function. */
+
+    std::unordered_map<std::string, ir::Operand>
+        globalConstants; /**< Global constants. */
+
+    std::unordered_map<std::string, ir::Operand>
         globals; /**< Global variables. */
+
+    std::unordered_map<std::string, ir::Operand>
+        strings; /**< String literals. */
 
     utils::Logger logger; /**< The logger. */
   };

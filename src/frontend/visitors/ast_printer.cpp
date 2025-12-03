@@ -1,14 +1,13 @@
 /**
- * @brief Pretty printer implementation.
- * @file pretty.cpp
+ * @brief AST pretty printer implementation.
+ * @file ast_printer.cpp
  */
 
-#include "verte/frontend/visitors/pretty.hpp"
+#include "verte/frontend/visitors/ast_printer.hpp"
 #include "verte/frontend/parser/ast.hpp"
-#include <llvm/Support/raw_ostream.h>
 
 namespace verte::visitors {
-  auto PrettyPrinter::visit(const ProgramNode &node) -> RetT {
+  auto ASTPrinter::visit(const ProgramNode &node) -> RetT {
     printIndent() << "Program Node:\n";
     IndentGuard guard(*this);
 
@@ -19,12 +18,12 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const LiteralNode &node) -> RetT {
+  auto ASTPrinter::visit(const LiteralNode &node) -> RetT {
     printIndent() << "Literal: " << node.getValue() << '\n';
     return {};
   }
 
-  auto PrettyPrinter::visit(const VarDeclNode &node) -> RetT {
+  auto ASTPrinter::visit(const VarDeclNode &node) -> RetT {
     printIndent() << "VarDecl Node: " << node.getName() << " : "
                   << node.getType().name << '\n';
 
@@ -36,7 +35,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const AssignNode &node) -> RetT {
+  auto ASTPrinter::visit(const AssignNode &node) -> RetT {
     printIndent() << "Assign Node:\n";
 
     IndentGuard guard(*this);
@@ -45,12 +44,12 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const VariableNode &node) -> RetT {
+  auto ASTPrinter::visit(const VariableNode &node) -> RetT {
     printIndent() << "Variable: " << node.getName() << '\n';
     return {};
   }
 
-  auto PrettyPrinter::visit(const IfNode &node) -> RetT {
+  auto ASTPrinter::visit(const IfNode &node) -> RetT {
     printIndent() << "If Node:\n";
 
     IndentGuard guard(*this);
@@ -63,7 +62,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const IfElseNode &node) -> RetT {
+  auto ASTPrinter::visit(const IfElseNode &node) -> RetT {
     printIndent() << "IfElse Node:\n";
 
     IndentGuard guard(*this);
@@ -76,7 +75,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const BinaryNode &node) -> RetT {
+  auto ASTPrinter::visit(const BinaryNode &node) -> RetT {
     printIndent() << "Binary Node: " << node.getOp() << '\n';
     IndentGuard guard(*this);
 
@@ -85,7 +84,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const UnaryNode &node) -> RetT {
+  auto ASTPrinter::visit(const UnaryNode &node) -> RetT {
     printIndent() << "Unary Node: " << node.getOp() << '\n';
     IndentGuard guard(*this);
 
@@ -93,7 +92,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const ProtoNode &node) -> RetT {
+  auto ASTPrinter::visit(const ProtoNode &node) -> RetT {
     printIndent() << "Proto Node: " << node.getName() << '\n';
     IndentGuard guard(*this);
 
@@ -106,7 +105,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const BlockNode &node) -> RetT {
+  auto ASTPrinter::visit(const BlockNode &node) -> RetT {
     printIndent() << "Block Node:\n";
     IndentGuard guard(*this);
 
@@ -117,7 +116,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const FuncDeclNode &node) -> RetT {
+  auto ASTPrinter::visit(const FuncDeclNode &node) -> RetT {
     printIndent() << "FuncDecl Node:\n";
     IndentGuard guard(*this);
 
@@ -126,7 +125,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const CallNode &node) -> RetT {
+  auto ASTPrinter::visit(const CallNode &node) -> RetT {
     printIndent() << "Call Node:\n";
     IndentGuard guard(*this);
 
@@ -141,7 +140,7 @@ namespace verte::visitors {
     return {};
   }
 
-  auto PrettyPrinter::visit(const ReturnNode &node) -> RetT {
+  auto ASTPrinter::visit(const ReturnNode &node) -> RetT {
     printIndent() << "Return Node:\n";
     IndentGuard guard(*this);
 

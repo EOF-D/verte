@@ -7,8 +7,6 @@
 #include "verte/errors.hpp"
 
 namespace verte::codegen {
-  llvm::Module &Codegen::getModule() const { return *module; }
-
   auto Codegen::visit(const ProgramNode &node) -> RetT {
     for (const auto &child : node.getBody()) {
       child->accept(*this);
@@ -22,78 +20,75 @@ namespace verte::codegen {
     const auto &typeInfo = node.getType();
 
     switch (typeInfo.dataType) {
-      using enum TypeInfo::DataType;
+      using enum types::TypeInfo::DataType;
 
       case INTEGER: {
-        int intValue = std::stoi(value);
-        return llvm::ConstantInt::get(context, llvm::APInt(32, intValue, 10));
+        int64_t intValue = std::stoll(value);
+        return ir::Operand::imm(intValue);
       }
 
       case FLOAT:
-        return llvm::ConstantFP::get(context, llvm::APFloat(std::stof(value)));
-
-      case DOUBLE:
-        return llvm::ConstantFP::get(context, llvm::APFloat(std::stod(value)));
-
-      case BOOL: {
-        bool boolValue = value == "true";
-        return llvm::ConstantInt::get(context, llvm::APInt(1, boolValue, 10));
+      case DOUBLE: {
+        double doubleValue = std::stod(value);
+        return ir::Operand::fimm(doubleValue);
       }
 
-      //  TODO: Implement.
-      case STRING:
+      case BOOL: {
+        return ir::Operand::imm(value == "true" ? 1 : 0);
+      }
+
+      case STRING: {
         return createString(value);
+      }
 
       case VOID:
       case UNKNOWN:
-        return {};
+        error("Invalid literal type");
     }
 
-    llvm_unreachable("Invalid data type.");
+    // Should not reach here.
+    error("Invalid literal type");
   }
 
   auto Codegen::visit(const VarDeclNode &node) -> RetT {
-    auto type = getType(node.getType());
     const std::string &name = node.getName();
+    const auto &type = node.getType();
 
-    // Handle local definition.
+    // Handle local definitions inside of function.
     if (currentFunc != nullptr) {
-      auto value = std::get<llvm::Value *>(node.getValue()->accept(*this));
-      if (!value)
-        error("Invalid value for variable: " + name);
+      auto value = std::get<ir::Operand>(node.getValue()->accept(*this));
 
+      // Handle local constants.
       if (node.isConstant()) {
-        currentFunc->constants[name] = llvm::cast<llvm::Constant>(value);
+        constants[name] = value;
         return {};
       }
 
-      // If the variable is not constant, allocate memory for it.
-      auto alloca = builder->CreateAlloca(type, nullptr, name);
-      builder->CreateStore(value, alloca);
-      currentFunc->locals[name] = alloca;
+      // Handle local variables by allocating a stack slot.
+      // Use 8-byte alignment for simplicity, and negative offsets because stack
+      // grows downward.
+      int32_t offset = -static_cast<int32_t>((locals.size() + 1) * 8);
+      auto stackSlot = ir::Operand::stackSlot(offset, type);
+
+      // Add store instruction.
+      currentBlock->addInstruction(
+          ir::Instruction(ir::Opcode::STORE, stackSlot, value));
+
+      locals[name] = stackSlot;
+      return {};
     }
 
-    // Handle global definition.
-    else {
-      llvm::Constant *valuePtr = llvm::Constant::getNullValue(type);
+    // Handle global definitions.
+    auto value = std::get<ir::Operand>(node.getValue()->accept(*this));
 
-      auto value = std::get<llvm::Value *>(node.getValue()->accept(*this));
-      if (!value)
-        error("Invalid value for variable declaration: " + name);
-
-      if (!node.isConstant())
-        error("Global variable must be constant: " + name);
-
-      valuePtr = llvm::cast<llvm::Constant>(value);
-      constants[name] = valuePtr; // Register the constant to the codegen.
-
-      // Create the global variable.
-      auto globalVar = new llvm::GlobalVariable(
-          *module, type, true, llvm::GlobalValue::ExternalLinkage, valuePtr,
-          name);
-
-      globals[name] = globalVar;
+    if (!node.isConstant()) {
+      error("Global variable must be constant: " + name);
     }
+
+    // Store direct value in global constants.
+    // And store global operand for reference.
+    globalConstants[name] = value;
+    globals[name] = ir::Operand::global(name);
 
     return {};
   }
@@ -101,54 +96,83 @@ namespace verte::codegen {
   auto Codegen::visit(const AssignNode &node) -> RetT {
     const std::string &name = node.getName();
 
-    // Check if the variable is a constant.
-    if (constants.contains(name))
-      error("Cannot assign to a constant: " + name);
-
-    else if (globals.contains(name))
-      error("Cannot assign to a global variable: " + name);
-
-    auto value = std::get<llvm::Value *>(node.getValue()->accept(*this));
-    if (!value)
-      error("Invalid value for assignment: " + name);
-
-    // Checking in function scope.
-    if (currentFunc != nullptr) {
-      if (currentFunc->constants.find(name) != currentFunc->constants.end())
-        error("Cannot assign to constant variable: " + name);
-
-      else if (currentFunc->locals.find(name) == currentFunc->locals.end())
-        error("Unknown variable referenced: " + name);
-
-      if (currentFunc->locals.contains(name)) {
-        auto alloca = currentFunc->locals[name];
-        builder->CreateStore(value, alloca);
-
-        return {};
-      }
+    // Check global constants/variables.
+    if (globalConstants.contains(name)) {
+      error("Cannot assign to global constant: " + name);
     }
 
-    // Variable not found in locals, globals.
-    error("Unknown variable referenced: " + name);
+    if (globals.contains(name)) {
+      error("Cannot assign to global variable: " + name);
+    }
+
+    // Must be in function scope.
+    if (currentFunc == nullptr) {
+      error("Assignment must be inside a function: " + name);
+    }
+
+    if (constants.contains(name)) {
+      error("Cannot assign to constant: " + name);
+    }
+
+    // Check if it exists in locals.
+    if (!locals.contains(name)) {
+      error("Unknown variable referenced: " + name);
+    }
+
+    // Check if it's a parameter.
+    if (locals[name].isVReg()) {
+      error("Cannot assign to parameter: " + name);
+    }
+
+    // Must be a stack slot.
+    auto value = std::get<ir::Operand>(node.getValue()->accept(*this));
+    auto stackSlot = locals[name];
+    currentBlock->addInstruction(
+        ir::Instruction(ir::Opcode::STORE, stackSlot, value));
+
+    return {};
   }
 
   auto Codegen::visit(const VariableNode &node) -> RetT {
-    const std::string name = node.getName();
+    const std::string &name = node.getName();
 
-    if (globals.contains(name))
-      return loadGlobal(name);
+    // Check global scope.
+    if (globalConstants.contains(name)) {
+      return globalConstants[name];
+    }
 
-    else if (constants.contains(name))
-      return constants[name];
+    if (globals.contains(name)) {
+      auto global = globals[name];
+      auto result = allocateVReg(global.getTypeInfo());
+      currentBlock->addInstruction(
+          ir::Instruction(ir::Opcode::LOAD, result, global));
 
+      return result;
+    }
+
+    // Check function scope.
     if (currentFunc != nullptr) {
-      if (currentFunc->locals.contains(name)) {
-        auto alloca = currentFunc->locals[name];
-        return builder->CreateLoad(alloca->getAllocatedType(), alloca, name);
+      if (constants.contains(name)) {
+        return constants[name];
       }
 
-      if (currentFunc->constants.contains(name))
-        return currentFunc->constants[name];
+      if (locals.contains(name)) {
+        auto operand = locals[name];
+
+        // If it's a vreg, use directly.
+        if (operand.isVReg()) {
+          return operand;
+        }
+
+        // If it's a stack slot, load it.
+        if (operand.isStackSlot()) {
+          auto result = allocateVReg(operand.getTypeInfo());
+          currentBlock->addInstruction(
+              ir::Instruction(ir::Opcode::LOAD, result, operand));
+
+          return result;
+        }
+      }
     }
 
     error("Unknown variable referenced: " + name);
@@ -158,30 +182,47 @@ namespace verte::codegen {
     if (currentFunc == nullptr)
       error("If statement must be inside a function.");
 
-    auto current = currentFunc->llvmFunc;
+    auto *condBlock = currentFunc->createBlock("cond");
+    auto *thenBlock = currentFunc->createBlock("then");
+    auto *mergeBlock = currentFunc->createBlock("merge");
 
-    llvm::BasicBlock *cond = llvm::BasicBlock::Create(context, "cond", current);
-    llvm::BasicBlock *then = llvm::BasicBlock::Create(context, "then", current);
-    llvm::BasicBlock *merge =
-        llvm::BasicBlock::Create(context, "merge", current);
+    // Get current block before switching.
+    auto *prevBlock = currentBlock;
 
-    builder->CreateBr(cond);
-    builder->SetInsertPoint(cond);
-    llvm::Value *condValue =
-        std::get<llvm::Value *>(node.getCond()->accept(*this));
-    builder->CreateCondBr(condValue, then, merge);
+    // Branch from previous block to condition block.
+    prevBlock->setTerminator(
+        ir::Instruction(ir::Opcode::BR, condBlock->getLabel()));
+
+    prevBlock->addSuccessor(condBlock);
+    condBlock->addPredecessor(prevBlock);
+
+    // Condition block.
+    currentBlock = condBlock;
+    auto condValue = std::get<ir::Operand>(node.getCond()->accept(*this));
+    currentBlock->setTerminator(
+        ir::Instruction(ir::Opcode::CONDBR, thenBlock->getLabel(), condValue,
+                        mergeBlock->getLabel()));
+
+    currentBlock->addSuccessor(thenBlock);
+    currentBlock->addSuccessor(mergeBlock);
+    thenBlock->addPredecessor(currentBlock);
+    mergeBlock->addPredecessor(currentBlock);
 
     // Then block.
-    builder->SetInsertPoint(then);
+    currentBlock = thenBlock;
     node.getBlock()->accept(*this);
 
-    // Only add branch if current insert block is valid and has no terminator.
-    if (builder->GetInsertBlock() &&
-        !builder->GetInsertBlock()->getTerminator()) {
-      builder->CreateBr(merge);
+    // Only add branch if current block doesn't have a terminator.
+    if (!currentBlock->hasTerminator()) {
+      currentBlock->setTerminator(
+          ir::Instruction(ir::Opcode::BR, mergeBlock->getLabel()));
+
+      currentBlock->addSuccessor(mergeBlock);
+      mergeBlock->addPredecessor(currentBlock);
     }
 
-    builder->SetInsertPoint(merge);
+    // Merge block.
+    currentBlock = mergeBlock;
     return {};
   }
 
@@ -189,243 +230,246 @@ namespace verte::codegen {
     if (currentFunc == nullptr)
       error("If-else statement must be inside a function.");
 
-    auto current = currentFunc->llvmFunc;
+    auto *condBlock = currentFunc->createBlock("cond");
+    auto *thenBlock = currentFunc->createBlock("then");
+    auto *elseBlock = currentFunc->createBlock("else");
+    auto *mergeBlock = currentFunc->createBlock("merge");
 
-    llvm::BasicBlock *cond = llvm::BasicBlock::Create(context, "cond", current);
-    llvm::BasicBlock *then = llvm::BasicBlock::Create(context, "then", current);
-    llvm::BasicBlock *else_ =
-        llvm::BasicBlock::Create(context, "else", current);
-    llvm::BasicBlock *merge =
-        llvm::BasicBlock::Create(context, "merge", current);
+    // Get current block before switching.
+    auto *prevBlock = currentBlock;
 
-    builder->CreateBr(cond);
-    builder->SetInsertPoint(cond);
-    llvm::Value *condValue =
-        std::get<llvm::Value *>(node.getIfNode()->getCond()->accept(*this));
-    builder->CreateCondBr(condValue, then, else_);
+    // Branch from previous block to condition block.
+    prevBlock->setTerminator(
+        ir::Instruction(ir::Opcode::BR, condBlock->getLabel()));
+    prevBlock->addSuccessor(condBlock);
+    condBlock->addPredecessor(prevBlock);
+
+    // Condition block.
+    currentBlock = condBlock;
+    auto condValue =
+        std::get<ir::Operand>(node.getIfNode()->getCond()->accept(*this));
+
+    currentBlock->setTerminator(
+        ir::Instruction(ir::Opcode::CONDBR, thenBlock->getLabel(), condValue,
+                        elseBlock->getLabel()));
+
+    currentBlock->addSuccessor(thenBlock);
+    currentBlock->addSuccessor(elseBlock);
+    thenBlock->addPredecessor(currentBlock);
+    elseBlock->addPredecessor(currentBlock);
 
     // Then block.
-    builder->SetInsertPoint(then);
+    currentBlock = thenBlock;
     node.getIfNode()->getBlock()->accept(*this);
 
-    // nly add branch if current insert block is valid and has no
-    // terminator.
-    if (builder->GetInsertBlock() &&
-        !builder->GetInsertBlock()->getTerminator()) {
-      builder->CreateBr(merge);
+    // Only add branch if current block doesn't have a terminator.
+    if (!currentBlock->hasTerminator()) {
+      currentBlock->setTerminator(
+          ir::Instruction(ir::Opcode::BR, mergeBlock->getLabel()));
+
+      currentBlock->addSuccessor(mergeBlock);
+      mergeBlock->addPredecessor(currentBlock);
     }
 
     // Else block.
-    builder->SetInsertPoint(else_);
+    currentBlock = elseBlock;
     node.getElseBlock()->accept(*this);
 
-    // Only add branch if current insert block is valid and has no
-    // terminator.
-    if (builder->GetInsertBlock() &&
-        !builder->GetInsertBlock()->getTerminator()) {
-      builder->CreateBr(merge);
+    // Only add branch if current block doesn't have a terminator.
+    if (!currentBlock->hasTerminator()) {
+      currentBlock->setTerminator(
+          ir::Instruction(ir::Opcode::BR, mergeBlock->getLabel()));
+
+      currentBlock->addSuccessor(mergeBlock);
+      mergeBlock->addPredecessor(currentBlock);
     }
 
-    // Determine if merge block is reachable.
-    bool thenTerminated = then->getTerminator() != nullptr;
-    bool elseTerminated = else_->getTerminator() != nullptr;
-
-    if (thenTerminated && elseTerminated) {
-      builder->SetInsertPoint(merge);
-      builder->CreateUnreachable();
-    } else {
-      builder->SetInsertPoint(merge);
-    }
-
+    // Merge block.
+    currentBlock = mergeBlock;
     return {};
   }
 
   auto Codegen::visit(const BinaryNode &node) -> RetT {
-    auto lhs = std::get<llvm::Value *>(node.getLHS()->accept(*this));
-    auto rhs = std::get<llvm::Value *>(node.getRHS()->accept(*this));
+    auto lhs = std::get<ir::Operand>(node.getLHS()->accept(*this));
+    auto rhs = std::get<ir::Operand>(node.getRHS()->accept(*this));
     const std::string &op = node.getOp();
 
-    if (!lhs || !rhs)
-      error("Invalid binary operation.");
+    // Allocate result register.
+    auto result = allocateVReg(lhs.getTypeInfo());
 
-    llvm::Type *lhsType = lhs->getType();
-    llvm::Type *rhsType = rhs->getType();
+    // Map operator to opcode.
+    ir::Opcode opcode;
 
-    // NOTE: Simple type checking. Add a full type checking visitor later.
-    if (lhsType != rhsType)
-      error("Binary operands must have the same type.");
+    if (op == "+")
+      opcode = ir::Opcode::ADD;
+    else if (op == "-")
+      opcode = ir::Opcode::SUB;
+    else if (op == "*")
+      opcode = ir::Opcode::MUL;
+    else if (op == "/")
+      opcode = ir::Opcode::DIV;
+    else if (op == "%")
+      opcode = ir::Opcode::MOD;
+    else if (op == "==")
+      opcode = ir::Opcode::ICMP_EQ;
+    else if (op == "!=")
+      opcode = ir::Opcode::ICMP_NE;
+    else if (op == "<")
+      opcode = ir::Opcode::ICMP_LT;
+    else if (op == "<=")
+      opcode = ir::Opcode::ICMP_LE;
+    else if (op == ">")
+      opcode = ir::Opcode::ICMP_GT;
+    else if (op == ">=")
+      opcode = ir::Opcode::ICMP_GE;
+    else
+      error("Invalid binary operator: " + op);
 
-    // clang-format off
-    if (op == "+") return builder->CreateAdd(lhs, rhs, "addtmp");
-    else if (op == "-") return builder->CreateSub(lhs, rhs, "subtmp");
-    else if (op == "*") return builder->CreateMul(lhs, rhs, "multmp");
-    else if (op == "/") return builder->CreateFDiv(lhs, rhs, "divtmp");
-    else if (op == "%") return builder->CreateSRem(lhs, rhs, "modtmp");
-    else if (op == "<") return builder->CreateICmpULT(lhs, rhs, "cmptmp");
-    else if (op == ">") return builder->CreateICmpUGT(lhs, rhs, "cmptmp");
-    else if (op == "==") return builder->CreateICmpEQ(lhs, rhs, "cmptmp");
-    else if (op == "!=") return builder->CreateICmpNE(lhs, rhs, "cmptmp");
-    else if (op == "<=") return builder->CreateICmpULE(lhs, rhs, "cmptmp");
-    else if (op == ">=") return builder->CreateICmpUGE(lhs, rhs, "cmptmp");
-    // clang-format on
-
-    error("Invalid binary operator: " + op);
+    // Add instruction.
+    currentBlock->addInstruction(ir::Instruction(opcode, result, lhs, rhs));
+    return result;
   }
 
   auto Codegen::visit(const UnaryNode &node) -> RetT {
     const std::string &op = node.getOp();
-    auto operand = std::get<llvm::Value *>(node.getOperand()->accept(*this));
+    auto operand = std::get<ir::Operand>(node.getOperand()->accept(*this));
 
-    if (!operand)
-      error("Invalid operand for unary operation");
+    // Allocate result register.
+    auto result = allocateVReg(operand.getTypeInfo());
+
+    // Map operator to opcode.
+    ir::Opcode opcode;
 
     if (op == "-")
-      return builder->CreateNeg(operand, "negtmp");
-
+      opcode = ir::Opcode::NEG;
     else if (op == "!")
-      return builder->CreateNot(operand, "nottmp");
+      opcode = ir::Opcode::NOT;
+    else
+      error("Invalid unary operator: " + op);
 
-    error("Invalid unary operator: " + op);
+    // Add instruction.
+    currentBlock->addInstruction(ir::Instruction(opcode, result, operand));
+    return result;
   }
 
   auto Codegen::visit(const ProtoNode &node) -> RetT {
-    const std::string name = node.getName();
-
-    // Get parameter types.
-    std::vector<llvm::Type *> paramTypes;
-    for (const auto &param : node.getParams())
-      paramTypes.push_back(getType(param.type));
-
-    // Create the function type.
-    llvm::Type *returnType = getType(node.getRetType());
-    llvm::FunctionType *funcType =
-        llvm::FunctionType::get(returnType, paramTypes, false);
-
-    // Create the function.
-    llvm::Function *func = llvm::Function::Create(
-        funcType, llvm::Function::ExternalLinkage, name, module.get());
-
-    // Set the names for the function arguments.
-    size_t i = 0;
-    for (auto &arg : func->args())
-      arg.setName(node.getParams()[i++].name);
+    auto params = node.getParams();
+    auto *func = module.createFunction(node.getName(), std::move(params),
+                                       node.getRetType());
 
     return func;
   }
 
   auto Codegen::visit(const BlockNode &node) -> RetT {
-    // Visit the children nodes.
-    for (const auto &child : node.getBody())
-      child->accept(*this);
+    for (const auto &stmt : node.getBody()) {
+      stmt->accept(*this);
+    }
 
     return {};
   }
 
   auto Codegen::visit(const FuncDeclNode &node) -> RetT {
-    llvm::Function *func =
-        std::get<llvm::Function *>(node.getProto()->accept(*this));
+    auto *irFunc = std::get<ir::Function *>(node.getProto()->accept(*this));
 
-    // Saving the previous function.
-    std::unique_ptr<Function> prev = std::move(currentFunc);
+    // Save previous function state.
+    ir::Function *prevFunc = currentFunc;
+    ir::BasicBlock *prevBlock = currentBlock;
+    auto prevConstants = std::move(constants);
+    auto prevLocals = std::move(locals);
+    uint32_t prevVReg = nextVReg;
 
-    // Update the current function.
-    const std::string &name = node.getProto()->getName();
-    std::vector<llvm::Type *> paramTypes = func->getFunctionType()->params();
-    llvm::Type *retType = func->getReturnType();
+    // Set current function.
+    currentFunc = irFunc;
+    nextVReg = 0;
+    constants.clear();
+    locals.clear();
 
-    currentFunc =
-        std::make_unique<Function>(Function(name, paramTypes, retType));
+    // Create entry block and set as current.
+    currentBlock = currentFunc->createBlock("entry");
 
-    currentFunc->llvmFunc = func;
-
-    // Create the entry block.
-    llvm::BasicBlock *block = llvm::BasicBlock::Create(context, "entry", func);
-    builder->SetInsertPoint(block);
-
-    // Make the arguments available in the function.
-    for (auto &arg : func->args()) {
-      llvm::AllocaInst *allocaInst =
-          builder->CreateAlloca(arg.getType(), nullptr, arg.getName());
-
-      builder->CreateStore(&arg, allocaInst);
-      currentFunc->locals[arg.getName().str()] = allocaInst;
+    // Store parameters as virtual registers.
+    for (const auto &param : node.getProto()->getParams()) {
+      auto paramReg = allocateVReg(param.type);
+      locals[param.name] = paramReg;
     }
 
-    // Visit the function body.
+    // Visit function body.
     node.getBody()->accept(*this);
 
-    // Reset the current function.
-    currentFunc = std::move(prev);
-    return func;
+    // Restore previous function state.
+    currentFunc = prevFunc;
+    currentBlock = prevBlock;
+    constants = std::move(prevConstants);
+    locals = std::move(prevLocals);
+    nextVReg = prevVReg;
+
+    return irFunc;
   }
 
   auto Codegen::visit(const CallNode &node) -> RetT {
-    // Get the callee function.
-    std::string name = node.getCallee()->getName();
-    llvm::Function *callee = module->getFunction(name);
+    const std::string &calleeName = node.getCallee()->getName();
+    if (!module.hasFunction(calleeName)) {
+      error("Unknown function: " + calleeName);
+    }
 
-    if (!callee)
-      error("Unknown function referenced: " + name);
+    auto *calleeFunc = module.getFunction(calleeName);
 
-    // Get the arguments.
-    std::vector<llvm::Value *> args;
-    for (const auto &arg : node.getArgs())
-      args.push_back(std::get<llvm::Value *>(arg->accept(*this)));
+    // Generate arguments.
+    std::vector<ir::Operand> args;
+    for (const auto &arg : node.getArgs()) {
+      args.push_back(std::get<ir::Operand>(arg->accept(*this)));
+    }
 
-    // Create the call instruction.
-    return builder->CreateCall(callee, args, "calltmp");
+    // Allocate result register.
+    auto result = allocateVReg(calleeFunc->getReturnType());
+
+    // Add call instruction.
+    currentBlock->addInstruction(
+        ir::Instruction(result, calleeName, std::move(args)));
+
+    return result;
   }
 
   auto Codegen::visit(const ReturnNode &node) -> RetT {
-    llvm::Value *ret = std::get<llvm::Value *>(node.getValue()->accept(*this));
+    if (!currentFunc) {
+      error("Return statement must be inside a function");
+    }
 
-    // Create the return instruction.
-    builder->CreateRet(ret);
+    // Generate return value.
+    auto value = std::get<ir::Operand>(node.getValue()->accept(*this));
+
+    // Add return instruction.
+    currentBlock->setTerminator(
+        ir::Instruction(std::optional<ir::Operand>(value)));
+
     return {};
   }
 
-  llvm::Type *Codegen::getType(const TypeInfo &type) const {
-    switch (type.dataType) {
-      case TypeInfo::DataType::INTEGER:
-        return builder->getInt32Ty();
-
-      case TypeInfo::DataType::FLOAT:
-        return builder->getFloatTy();
-
-      case TypeInfo::DataType::DOUBLE:
-        return builder->getDoubleTy();
-
-      case TypeInfo::DataType::BOOL:
-        return builder->getInt1Ty();
-
-      case TypeInfo::DataType::STRING:
-        return builder->getInt8PtrTy();
-
-      case TypeInfo::DataType::VOID:
-        return builder->getVoidTy();
-
-      default:
-        return nullptr;
-    }
-  }
-
-  llvm::Value *Codegen::loadGlobal(const std::string &name) {
-    if (globals.contains(name)) {
-      auto globalVar = globals[name];
-      return builder->CreateLoad(globalVar->getValueType(), globalVar, name);
+  ir::BasicBlock *Codegen::createBlock(const std::string &label) {
+    if (!currentFunc) {
+      error("Cannot create block outside of function");
     }
 
-    error("Unknown global variable: " + name);
+    return currentFunc->createBlock(label);
   }
 
-  llvm::Value *Codegen::createString(const std::string &value) {
-    auto *strConst = llvm::ConstantDataArray::getString(context, value, true);
+  ir::Operand Codegen::createString(const std::string &value) {
+    // Check if we've already created this string literal.
+    if (strings.contains(value)) {
+      return strings[value];
+    }
 
-    llvm::GlobalVariable *str = new llvm::GlobalVariable(
-        *module, strConst->getType(), true, llvm::GlobalValue::PrivateLinkage,
-        strConst, "str");
+    // Generate label for string literal.
+    std::string label = ".str" + std::to_string(strings.size());
 
-    return builder->CreatePointerCast(str, llvm::Type::getInt8PtrTy(context));
+    // Create global operand for string.
+    auto global = ir::Operand::global(label);
+
+    // Store the string.
+    strings[value] = global;
+    globals[label] = global;
+
+    return global;
   }
 
   template <typename... Args>

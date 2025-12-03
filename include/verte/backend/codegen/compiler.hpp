@@ -1,15 +1,12 @@
 /**
- * @brief Handles the compilation of a llvm module.
+ * @brief Handles the compilation of an IR module.
  * @file compiler.hpp
  */
 
 #ifndef VERTE_BACKEND_CODEGEN_COMPILER_HPP
 #define VERTE_BACKEND_CODEGEN_COMPILER_HPP
 
-#include "llvm/IR/Module.h"
-
-#include <memory>
-#include <string>
+#include "verte/backend/ir/module.hpp"
 
 /**
  * @namespace verte::codegen
@@ -17,35 +14,23 @@
  * classes and functions.
  */
 namespace verte::codegen {
-  using namespace llvm;
-
   /**
-   * @brief Compiler class that handles JIT and native compilation for
-   * llvm::Module.
+   * @brief Compiler class that handles native compilation for IR modules.
    */
   class Compiler {
   public:
     /**
      * @brief Construct a new Compiler object.
      */
-    Compiler() noexcept;
+    Compiler() noexcept = default;
 
     /**
-     * @brief Compile the given module into native code.
-     * @param module The module to compile.
+     * @brief Compile the given IR module into native code.
+     * @param module The IR module to compile.
      * @param outputPath The file path to save the compiled native code.
      * @return True if compilation succeeded, false otherwise.
      */
-    bool compile(Module &module, const std::string &outputPath);
-
-  private:
-    /**
-     * @brief Compile the given module into native code.
-     * @param module The module to compile.
-     * @param outputPath The file path to save the compiled native code.
-     * @return True if compilation succeeded, false otherwise.
-     */
-    bool native(Module &module, const std::string &outputPath);
+    bool compile(ir::Module &module, const std::string &outputPath);
   };
 } // namespace verte::codegen
 

@@ -9,7 +9,6 @@
 #include "verte/backend/ir/operand.hpp"
 #include "verte/type_info.hpp"
 
-#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -36,36 +35,6 @@ namespace verte::types {
     ir::Function*     /**< IR function. */
   >;
   // clang-format on
-
-  /**
-   * @struct Function
-   * @brief Represents a function.
-   */
-  struct Function {
-    std::string name;     /**< The name of the function. */
-    ir::Function *irFunc; /**< The IR function. */
-    TypeInfo returnType;  /**< The return type of the function. */
-
-    std::vector<TypeInfo> paramTypes; /**< The types of the parameters. */
-    std::unordered_map<std::string, ir::Operand> constants; /**< Constants. */
-    std::unordered_map<std::string, ir::Operand>
-        locals; /**< Local variables. */
-
-    /**
-     * @brief Default constructor.
-     */
-    Function() = default;
-
-    /**
-     * @brief Construct a new Function.
-     * @param name The name of the function.
-     * @param paramTypes The types of the parameters.
-     * @param returnType The return type of the function.
-     */
-    Function(const std::string &name, const std::vector<TypeInfo> &paramTypes,
-             const TypeInfo &returnType)
-        : name(name), returnType(returnType), paramTypes(paramTypes) {}
-  };
 } // namespace verte::types
 
 #endif // VERTE_TYPES_HPP
