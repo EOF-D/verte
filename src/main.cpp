@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 
   // Compile the module to native code.
   Compiler compiler;
-  if (!compiler.compile(codegen.getModule(), outputFile)) {
+  if (!compiler.compile(codegen, outputFile)) {
     logger.error("Failed to compile the module to native code.");
     return -1;
   }

@@ -131,15 +131,19 @@ namespace verte::codegen {
     std::vector<PhysReg> freeIntRegs;
     std::vector<PhysReg> freeFloatRegs;
 
-    // Prefer callee-saved registers first.
-    for (auto reg : CALLEE_SAVED) {
-      freeIntRegs.push_back(reg);
-    }
-
+    // Add caller-saved registers first.
+    // This ensures callee-saved are preferred.
     for (auto reg : CALLER_SAVED) {
       freeIntRegs.push_back(reg);
     }
 
+    // Add callee-saved registers last.
+    // These survive across calls, so we prefer them.
+    for (auto reg : CALLEE_SAVED) {
+      freeIntRegs.push_back(reg);
+    }
+
+    // Float registers.
     for (auto reg : FLOAT_CALLER_SAVED) {
       freeFloatRegs.push_back(reg);
     }

@@ -13,6 +13,8 @@
 #include "verte/frontend/visitors/base.hpp"
 #include "verte/utils/logger.hpp"
 
+#include <unordered_set>
+
 /**
  * @namespace verte::codegen
  * @brief Code generation namespace. Contains all code generation related
@@ -48,6 +50,22 @@ namespace verte::codegen {
      * @return The module.
      */
     const ir::Module &getModule() const { return module; }
+
+    /**
+     * @brief Get the external functions set.
+     * @return The external functions.
+     */
+    const std::unordered_set<std::string> &getExternalFunctions() const {
+      return externalFunctions;
+    }
+
+    /**
+     * @brief Get the string literals map.
+     * @return The string literals.
+     */
+    const std::unordered_map<std::string, ir::Operand> &getStrings() const {
+      return strings;
+    }
 
     /**
      * @brief Visit a ProgramNode.
@@ -175,12 +193,15 @@ namespace verte::codegen {
     [[noreturn]] void error(const std::string &message, Args &&...args);
 
     /**
-     * @brief Initialize the symbol table with some constants, etc.
+     * @brief Initialize the symbol table with constants and external functions.
      */
     void initTable() {
       // Add true & false to the global constants table.
       globalConstants["true"] = ir::Operand::imm(1);
       globalConstants["false"] = ir::Operand::imm(0);
+
+      // Add printf.
+      externalFunctions.insert("printf");
     }
 
     ir::Module module; /**< IR module. */
@@ -203,6 +224,9 @@ namespace verte::codegen {
 
     std::unordered_map<std::string, ir::Operand>
         strings; /**< String literals. */
+
+    std::unordered_set<std::string>
+        externalFunctions; /**< External functions. */
 
     utils::Logger logger; /**< The logger. */
   };

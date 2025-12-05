@@ -45,6 +45,7 @@
         modules = [
           {
             packages = with pkgs; [
+              nasm
               clang-tools
               cmake
               doxygen

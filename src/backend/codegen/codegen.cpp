@@ -408,6 +408,26 @@ namespace verte::codegen {
 
   auto Codegen::visit(const CallNode &node) -> RetT {
     const std::string &calleeName = node.getCallee()->getName();
+
+    // Check if it's an external function.
+    if (externalFunctions.contains(calleeName)) {
+      std::vector<ir::Operand> args;
+      for (const auto &arg : node.getArgs()) {
+        args.push_back(std::get<ir::Operand>(arg->accept(*this)));
+      }
+
+      // Allocate result register (assuming int return for printf).
+      auto result =
+          allocateVReg(types::TypeInfo(types::TypeInfo::DataType::INTEGER));
+
+      // Add call instruction.
+      currentBlock->addInstruction(
+          ir::Instruction(result, calleeName, std::move(args)));
+
+      return result;
+    }
+
+    // Handle regular function calls.
     if (!module.hasFunction(calleeName)) {
       error("Unknown function: " + calleeName);
     }
