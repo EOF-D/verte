@@ -52,15 +52,28 @@ namespace verte::utils {
 
     /**
      * @brief Check if the AST should be printed.
-     * @return True if the AST should be printed, false otherwise.
+     * @return True if the AST should be printed, otherwise false.
      */
     [[nodiscard]] bool shouldPrintAst() const { return printAst.getValue(); }
 
     /**
-     * @brief Check if the generated LLVM IR should be printed.
-     * @return True if the generated LLVM IR should be printed, false otherwise.
+     * @brief Check if the generated IR should be printed.
+     * @return True if the generated IR should be printed, otherwise false.
      */
     [[nodiscard]] bool shouldPrintIr() const { return printIr.getValue(); }
+
+    /**
+     * @brief Check if the generated ASM file should be kept.
+     * @return True if the generated ASM file should be kept, otherwise false.
+     */
+    [[nodiscard]] bool shouldKeepAsm() const { return keepAsm.getValue(); }
+
+    /**
+     * @brief Check if the generated object file should be kept.
+     * @return True if the generated object file should be kept, otherwise
+     * false.
+     */
+    [[nodiscard]] bool shouldKeepObj() const { return keepObj.getValue(); }
 
     /**
      * @brief Get the log level.
@@ -147,7 +160,23 @@ namespace verte::utils {
      */
     llvm::cl::opt<bool> printIr{
       "print-ir",
-      llvm::cl::desc("Print the generated LLVM IR"),
+      llvm::cl::desc("Print the generated IR"),
+      llvm::cl::cat(category)};
+
+    /**
+    * @brief Keep the generated asm file.
+    */
+    llvm::cl::opt<bool> keepAsm{
+      "keep-asm",
+      llvm::cl::desc("Keep the generated asm file"),
+      llvm::cl::cat(category)};
+
+    /**
+    * @brief Keep the generated object file.
+    */
+    llvm::cl::opt<bool> keepObj{
+      "keep-obj",
+      llvm::cl::desc("Keep the generated object file"),
       llvm::cl::cat(category)};
 
     /**

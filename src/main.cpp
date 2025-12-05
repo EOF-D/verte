@@ -54,8 +54,13 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  CompilerOptions options{
+      .emitAssembly = args.shouldKeepAsm(),
+      .emitObject = args.shouldKeepObj(),
+  };
+
   // Compile the module to native code.
-  Compiler compiler;
+  Compiler compiler(options);
   if (!compiler.compile(codegen, outputFile)) {
     logger.error("Failed to compile the module to native code.");
     return -1;
